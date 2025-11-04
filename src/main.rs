@@ -14,55 +14,76 @@ enum Screens{
 //     WinUTF
 // }
 struct AFDBase{
-    nsr: &str,
+    nsr: String,
     tipo: RegistryTypes
     
 }
 //voltar aqui
 struct Cabecalho{
     base: AFDBase,
-    tipo_empregador: str,
-    cnpj_empregador: str,
-    cno_empregador: str,
-    razao_social: str,
-    id_rep: str,
-    data_inicio: str,
-    data_final: str,
-    geracao_arquivo: str,
-    versao_leiaute_afd: str,
-    cnpj_fabricante_rep: str,
-    modelo_rep: str,
-    registro_hexa: str,
+    tipo_empregador: String,
+    cnpj_empregador: String,
+    cno_empregador: String,
+    razao_social: String,
+    id_rep: String,
+    data_inicio: String,
+    data_final: String,
+    geracao_arquivo: String,
+    versao_leiaute_afd: String,
+    cnpj_fabricante_rep: String,
+    modelo_rep: String,
+    registro_hexa: String,
 }
 
 struct CreateUpdateEmpresa{
-    base: AFDBase
-
+    base: AFDBase,
+    date_time: String,
+    cpf_admin: String,
+    tipo_empregador: String,
+    cnpj_empregador: String,
+    cno: String,
+    razao_social: String,
+    local_servico: String,
+    registro_hexa: String,
 }
 struct MarcacaoPonto{
-    base: AFDBase
-
+    base: AFDBase,
+    date_time: String,
+    cpf_empregado: String,
+    registro_hexa: String,
 }
 struct AjusteRelogio{
-    base: AFDBase
+    base: AFDBase,
+    date_time_antes_registro: String,
+    date_time_ajustado: String,
+    cpf_adm: String,
+    registro_hexa: String,
 
 }
 struct CreateaUpdateDeleteEmpregado{
-    base: AFDBase
-
+    base: AFDBase,
+    date_time: String,
+    tipo_operacao: String,
+    cpf_empregado: String,
+    nome_empregado: String,
+    mais_dados_empregado: String,
+    cpf_adm: String,
+    registro_hexa: String,
 }
+
 struct SensivelREP{
-    base: AFDBase
-
+    base: AFDBase,
+    date_time: String,
+    evento: String,
 }
-struct MarcacaoPontoRepP{
-    base: AFDBase
-
-}
-struct Trailer{
-    base: AFDBase
-
-}
+// struct MarcacaoPontoRepP{
+//     base: AFDBase
+//
+// }
+// struct Trailer{
+//     base: AFDBase
+//
+// }
 
 enum RegistryTypes{
     Cabecalho,
@@ -89,12 +110,13 @@ impl RegistryTypes{
             _ => None,
         }
     }
+
     fn parse(&self, linha: &str){
         match self{
             Self::Cabecalho => {
                 let n_serie = &linha[0..9];
                 println!("numero de serie: {}", n_serie);
-                let tipo = self;
+                let tipo = RegistryTypes::Cabecalho;
                 println!("{}", tipo);
                 let mut tipo_empregador_txt = String::new();
                 if let Some(char_casa_11) = linha.chars().nth(10){
@@ -139,12 +161,28 @@ impl RegistryTypes{
                 println!("Modelo REP: {}", modelo_rep.to_string().trim());
 
                 let registro_hexa = &linha[298..302];
-                println!("Registro hexa: {}", registro_hexa)
+                println!("Registro hexa: {}", registro_hexa);
+
+                let cabecalho = Cabecalho{
+                    base: AFDBase { nsr: n_serie.to_string(), tipo: tipo },
+                    tipo_empregador: tipo_empregador_txt,
+                    cnpj_empregador: cnpj_cpf.to_string(),
+                    cno_empregador: cno_caepf.to_string(),
+                    razao_social: razao_social.to_string(),
+                    id_rep: id_rep.to_string(),
+                    data_inicio: data_inicio.to_string(),
+                    data_final: data_final.to_string(),
+                    geracao_arquivo: geracao_arquivo.to_string(),
+                    versao_leiaute_afd: versao_leiaute_afd.to_string(),
+                    cnpj_fabricante_rep: cnpj_fabricante_rep.to_string(),
+                    modelo_rep: modelo_rep.to_string(),
+                    registro_hexa: registro_hexa.to_string(),
+                };
             },
 
             Self::CreateUpdateEmpresa => { //2
                 let nsr = &linha[0..9];
-                let registro = self;
+                let registro = RegistryTypes::CreateUpdateEmpresa;
                 let date_time = &linha[10..34];
                 let cpf_admin = &linha[34..48];
                 let tipo_empregador_txt = &linha[48..49];
@@ -171,11 +209,22 @@ impl RegistryTypes{
                 println!("razao_social: {}", razao_social);
                 println!("local_servico: {}", local_servico);
                 println!("registro_hexa: {}", registro_hexa);
+                let createupdateempresa = CreateUpdateEmpresa{
+                    base: AFDBase { nsr: nsr.to_string(), tipo: registro },
+                    date_time: date_time.to_string(),
+                    cpf_admin: cpf_admin.to_string(),
+                    tipo_empregador: tipo_empregador.to_string(),
+                    cnpj_empregador: cnpj_empregador.to_string(),
+                    cno: cno.to_string(),
+                    razao_social: razao_social.to_string(),
+                    local_servico: local_servico.to_string(),
+                    registro_hexa: registro_hexa.to_string(),
+                };
             },
             
             Self::MarcacaoPonto => { //3
                 let nsr = &linha[0..9];
-                let registro = self;
+                let registro = RegistryTypes::MarcacaoPonto;
                 let date_time = &linha[10..34];
                 let cpf_empregado = &linha[35..46];
                 let registro_hexa = &linha[46..50];
@@ -183,12 +232,18 @@ impl RegistryTypes{
                 println!("registro: {}", registro);
                 println!("data/hora: {}", date_time);
                 println!("cpf empregado: {}", cpf_empregado);
-                println!("registro hexa: {}", registro_hexa)
+                println!("registro hexa: {}", registro_hexa);
+                let marcacaoponto = MarcacaoPonto{
+                    base: AFDBase { nsr: nsr.to_string(), tipo: registro },
+                    date_time: date_time.to_string(),
+                    cpf_empregado: cpf_empregado.to_string(),
+                    registro_hexa: registro_hexa.to_string(),
+                };
             },
 
             Self::AjusteRelogio => { //4
                 let nsr = &linha[0..9];
-                let registro = self;
+                let registro = RegistryTypes::AjusteRelogio;
                 let date_time_antes_registro = &linha[10..34];
                 let date_time_ajustado = &linha[34..58];
                 let cpf_adm = &linha[58..69];
@@ -199,11 +254,17 @@ impl RegistryTypes{
                 println!("date time ajustado: {}", date_time_ajustado);
                 println!("cpf adm: {}", cpf_adm);
                 println!("registro_hexa: {}", registro_hexa);
-
+                let ajuste_relogio = AjusteRelogio{
+                    base: AFDBase { nsr: nsr.to_string(), tipo: registro },
+                    date_time_antes_registro: date_time_antes_registro.to_string(),
+                    date_time_ajustado: date_time_ajustado.to_string(),
+                    cpf_adm: cpf_adm.to_string(),
+                    registro_hexa: registro_hexa.to_string()
+                };
             },
             Self::CreateUpdateDeleteEmpregado => { //5
                 let nsr = &linha[0..9];
-                let registro = self;
+                let registro = RegistryTypes::CreateUpdateDeleteEmpregado;
                 let date_time = &linha[10..34];
                 let tipo_operacao_str = &linha[34..35];
                 let tipo_operacao = match tipo_operacao_str{
@@ -226,12 +287,22 @@ impl RegistryTypes{
                 println!("mais_dados_empregado: {}", mais_dados_empregado);
                 println!("cpf admin: {}", cpf_adm);
                 println!("registro hexa: {}", registro_hexa);
+                let createupdatedeleteempregado = CreateaUpdateDeleteEmpregado{
+                    base: AFDBase { nsr: nsr.to_string(), tipo: registro },
+                    date_time: date_time.to_string(),
+                    tipo_operacao: tipo_operacao.to_string(),
+                    cpf_empregado: cpf_empregado.to_string(),
+                    nome_empregado: nome_empregado.to_string(),
+                    mais_dados_empregado: mais_dados_empregado.to_string(),
+                    cpf_adm: cpf_adm.to_string(),
+                    registro_hexa: registro_hexa.to_string(),
+                };
 
             },
 
             Self::SensivelREP=> { //6
                 let nsr = &linha[0..9];
-                let registro = self;
+                let registro = RegistryTypes::SensivelREP;
                 let date_time = &linha[10..34];
                 let tipo_evento_str = &linha[34..36];
                 let tipo_evento_int: i8 = tipo_evento_str.parse::<i8>().unwrap();
@@ -249,7 +320,13 @@ impl RegistryTypes{
                 println!("nsr: {}", nsr);
                 println!("registro: {}", registro);
                 println!("data/hora: {}", date_time);
-                println!("tipo evento: {} -> {}", tipo_evento_str, evento)
+                println!("tipo evento: {} -> {}", tipo_evento_str, evento);
+
+                let sensivelrep = SensivelREP{
+                    base: AFDBase { nsr: nsr.to_string(), tipo: registro },
+                    date_time: date_time.to_string(),
+                    evento: evento.to_string()
+                };
             },
             
             Self::MarcacaoPontoRepP => println!("TODO"),//7
