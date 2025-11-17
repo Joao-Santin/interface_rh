@@ -2,8 +2,9 @@ use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Element, Task as Command};
-use iced::widget::{column, button, text};
+use iced::widget::{column, row,  button, text};
 use iced::{Alignment::{Center}};
+use chrono::{DateTime, Local};
 //
 enum Screens{
     Main,
@@ -111,11 +112,10 @@ impl RegistryTypes{
         }
     }
 
-    fn parse(&self, linha: &str){
+    fn parse(&self, interfacerh: &mut InterfaceRH, linha: &str){
         match self{
             Self::Cabecalho => {
                 let n_serie = &linha[0..9];
-                println!("numero de serie: {}", n_serie);
                 let tipo = RegistryTypes::Cabecalho;
                 println!("{}", tipo);
                 let mut tipo_empregador_txt = String::new();
@@ -126,42 +126,42 @@ impl RegistryTypes{
                     }else{
                         tipo_empregador_txt = "CPF".to_string()
                     };
-                    println!("tipo_empregador: {}", tipo_empregador_txt)
+                    // println!("tipo_empregador: {}", tipo_empregador_txt)
 
                 }
                 let cnpj_cpf = &linha[11..25];
-                println!("cnpj/cpj: {}", cnpj_cpf);
+                // println!("cnpj/cpj: {}", cnpj_cpf);
                 let cno_caepf = &linha[25..39];
-                println!("cno: {}", cno_caepf);
+                // println!("cno: {}", cno_caepf);
                 let razao_social = &linha[39..189];
-                println!("razao_social: {}", razao_social.to_string().trim());
+                // println!("razao_social: {}", razao_social.to_string().trim());
                 let id_rep = &linha[189..206];
-                println!("id_rep: {}", id_rep);
+                // println!("id_rep: {}", id_rep);
 
                 let data_inicio = &linha[206..216];
-                println!("data_inicio: {}", data_inicio);
+                // println!("data_inicio: {}", data_inicio);
 
                 let data_final = &linha[216..226];
-                println!("data_final: {}", data_final);
+                // println!("data_final: {}", data_final);
 
                 let geracao_arquivo = &linha[226..250];
-                println!("data/hora geracao arquivo: {}", geracao_arquivo);
+                // println!("data/hora geracao arquivo: {}", geracao_arquivo);
 
                 let versao_leiaute_afd = &linha[250..253];
-                println!("leiaute_afd: {}", versao_leiaute_afd);
+                // println!("leiaute_afd: {}", versao_leiaute_afd);
 
                 let tipo_fabricante_rep_char = &linha[253..254];
                 let tipo_fabricante_rep = if tipo_fabricante_rep_char.to_string() == "1"{"CNPJ"}else{"CPF"};
-                println!("Tipo fabricante: {}", tipo_fabricante_rep);
+                // println!("Tipo fabricante: {}", tipo_fabricante_rep);
 
                 let cnpj_fabricante_rep = &linha[254..268];
-                println!("CNPJ fabricante rep: {}", cnpj_fabricante_rep.to_string().trim());
+                // println!("CNPJ fabricante rep: {}", cnpj_fabricante_rep.to_string().trim());
 
                 let modelo_rep = &linha[268..298];
-                println!("Modelo REP: {}", modelo_rep.to_string().trim());
+                // println!("Modelo REP: {}", modelo_rep.to_string().trim());
 
                 let registro_hexa = &linha[298..302];
-                println!("Registro hexa: {}", registro_hexa);
+                // println!("Registro hexa: {}", registro_hexa);
 
                 let cabecalho = Cabecalho{
                     base: AFDBase { nsr: n_serie.to_string(), tipo: tipo },
@@ -178,6 +178,7 @@ impl RegistryTypes{
                     modelo_rep: modelo_rep.to_string(),
                     registro_hexa: registro_hexa.to_string(),
                 };
+                interfacerh.data.cabecalho = Some(cabecalho)
             },
 
             Self::CreateUpdateEmpresa => { //2
@@ -198,17 +199,16 @@ impl RegistryTypes{
                 let razao_social = &linha[77..227];
                 let local_servico = &linha[227..327];
                 let registro_hexa = &linha[327..332];
-
-                println!("nsr: {}", nsr);
-                println!("registro: {}", registro);
-                println!("date time: {}", date_time);
-                println!("cpf_admin: {}", cpf_admin);
-                println!("tipo empregador: {}", tipo_empregador);
-                println!("cnpj empregador: {}", cnpj_empregador.trim());
-                println!("cno: {}", cno);
-                println!("razao_social: {}", razao_social);
-                println!("local_servico: {}", local_servico);
-                println!("registro_hexa: {}", registro_hexa);
+                // println!("nsr: {}", nsr);
+                // println!("registro: {}", registro);
+                // println!("date time: {}", date_time);
+                // println!("cpf_admin: {}", cpf_admin);
+                // println!("tipo empregador: {}", tipo_empregador);
+                // println!("cnpj empregador: {}", cnpj_empregador.trim());
+                // println!("cno: {}", cno);
+                // println!("razao_social: {}", razao_social);
+                // println!("local_servico: {}", local_servico);
+                // println!("registro_hexa: {}", registro_hexa);
                 let createupdateempresa = CreateUpdateEmpresa{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
                     date_time: date_time.to_string(),
@@ -220,6 +220,7 @@ impl RegistryTypes{
                     local_servico: local_servico.to_string(),
                     registro_hexa: registro_hexa.to_string(),
                 };
+                interfacerh.data.createupdateempresa.push(createupdateempresa)
             },
             
             Self::MarcacaoPonto => { //3
@@ -228,17 +229,18 @@ impl RegistryTypes{
                 let date_time = &linha[10..34];
                 let cpf_empregado = &linha[35..46];
                 let registro_hexa = &linha[46..50];
-                println!("nsr: {}", nsr);
-                println!("registro: {}", registro);
-                println!("data/hora: {}", date_time);
-                println!("cpf empregado: {}", cpf_empregado);
-                println!("registro hexa: {}", registro_hexa);
+                // println!("nsr: {}", nsr);
+                // println!("registro: {}", registro);
+                // println!("data/hora: {}", date_time);
+                // println!("cpf empregado: {}", cpf_empregado);
+                // println!("registro hexa: {}", registro_hexa);
                 let marcacaoponto = MarcacaoPonto{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
                     date_time: date_time.to_string(),
                     cpf_empregado: cpf_empregado.to_string(),
                     registro_hexa: registro_hexa.to_string(),
                 };
+                interfacerh.data.marcacaoponto.push(marcacaoponto)
             },
 
             Self::AjusteRelogio => { //4
@@ -248,12 +250,12 @@ impl RegistryTypes{
                 let date_time_ajustado = &linha[34..58];
                 let cpf_adm = &linha[58..69];
                 let registro_hexa = &linha[69..73];
-                println!("nsr: {}", nsr);
-                println!("registro: {}", registro);
-                println!("date_time_antes_registro: {}", date_time_antes_registro);
-                println!("date time ajustado: {}", date_time_ajustado);
-                println!("cpf adm: {}", cpf_adm);
-                println!("registro_hexa: {}", registro_hexa);
+                // println!("nsr: {}", nsr);
+                // println!("registro: {}", registro);
+                // println!("date_time_antes_registro: {}", date_time_antes_registro);
+                // println!("date time ajustado: {}", date_time_ajustado);
+                // println!("cpf adm: {}", cpf_adm);
+                // println!("registro_hexa: {}", registro_hexa);
                 let ajuste_relogio = AjusteRelogio{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
                     date_time_antes_registro: date_time_antes_registro.to_string(),
@@ -261,6 +263,7 @@ impl RegistryTypes{
                     cpf_adm: cpf_adm.to_string(),
                     registro_hexa: registro_hexa.to_string()
                 };
+                interfacerh.data.ajusterelogio.push(ajuste_relogio)
             },
             Self::CreateUpdateDeleteEmpregado => { //5
                 let nsr = &linha[0..9];
@@ -278,15 +281,15 @@ impl RegistryTypes{
                 let mais_dados_empregado = &linha[100..104];
                 let cpf_adm = &linha[104..115];
                 let registro_hexa = &linha[115..118];
-                println!("nsr: {}", nsr);
-                println!("registro: {}", registro);
-                println!("data/hora: {}", date_time);
-                println!("tipo operacao: {}", tipo_operacao);
-                println!("cpf empregado: {}", cpf_empregado);
-                println!("nome empregado: {}", nome_empregado.trim());
-                println!("mais_dados_empregado: {}", mais_dados_empregado);
-                println!("cpf admin: {}", cpf_adm);
-                println!("registro hexa: {}", registro_hexa);
+                // println!("nsr: {}", nsr);
+                // println!("registro: {}", registro);
+                // println!("data/hora: {}", date_time);
+                // println!("tipo operacao: {}", tipo_operacao);
+                // println!("cpf empregado: {}", cpf_empregado);
+                // println!("nome empregado: {}", nome_empregado.trim());
+                // println!("mais_dados_empregado: {}", mais_dados_empregado);
+                // println!("cpf admin: {}", cpf_adm);
+                // println!("registro hexa: {}", registro_hexa);
                 let createupdatedeleteempregado = CreateaUpdateDeleteEmpregado{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
                     date_time: date_time.to_string(),
@@ -297,6 +300,7 @@ impl RegistryTypes{
                     cpf_adm: cpf_adm.to_string(),
                     registro_hexa: registro_hexa.to_string(),
                 };
+                interfacerh.data.createupdatedeleteempregado.push(createupdatedeleteempregado)
 
             },
 
@@ -317,16 +321,17 @@ impl RegistryTypes{
                     8 => "Indisponibilidade de Servico",
                     _ => "Evento nao listado"
                 };
-                println!("nsr: {}", nsr);
-                println!("registro: {}", registro);
-                println!("data/hora: {}", date_time);
-                println!("tipo evento: {} -> {}", tipo_evento_str, evento);
+                // println!("nsr: {}", nsr);
+                // println!("registro: {}", registro);
+                // println!("data/hora: {}", date_time);
+                // println!("tipo evento: {} -> {}", tipo_evento_str, evento);
 
                 let sensivelrep = SensivelREP{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
                     date_time: date_time.to_string(),
                     evento: evento.to_string()
                 };
+                interfacerh.data.sensivelrep.push(sensivelrep)
             },
             
             Self::MarcacaoPontoRepP => println!("TODO"),//7
@@ -350,8 +355,33 @@ impl fmt::Display for RegistryTypes{
     }
 }
 
+struct InterfaceRHData{
+    cabecalho: Option<Cabecalho>,
+    createupdateempresa: Vec<CreateUpdateEmpresa>,
+    marcacaoponto: Vec<MarcacaoPonto>,
+    ajusterelogio: Vec<AjusteRelogio>,
+    createupdatedeleteempregado: Vec<CreateaUpdateDeleteEmpregado>,
+    sensivelrep: Vec<SensivelREP>,
+    // marcacaopontorepp
+    // trailer
+}
+impl Default for InterfaceRHData{
+    fn default() -> Self{
+        Self{
+            cabecalho: None,
+            createupdateempresa: Vec::new(),
+            marcacaoponto: Vec::new(),
+            ajusterelogio: Vec::new(),
+            createupdatedeleteempregado: Vec::new(),
+            sensivelrep: Vec::new()
+        }
+    }
+}
+
 struct InterfaceRH{
-    screen: Screens
+    screen: Screens,
+    last_afd_got: Option<DateTime<Local>>,
+    data: InterfaceRHData
 }
 
 #[derive(Debug, Clone)]
@@ -367,37 +397,38 @@ enum Message{
 impl Default for InterfaceRH{
     fn default() -> Self{
         Self{
-            screen: Screens::Main
+            screen: Screens::Main,
+            last_afd_got: None,
+            data: InterfaceRHData::default()
         }
     }
 
 }
 
 impl InterfaceRH{
-    fn decode_from_win1252_to_utf8(path: PathBuf){
+    fn decode_from_win1252_to_utf8(&mut self, path: PathBuf){
         match fs::read(&path) {
             Ok(bytes) => {
                 // Tenta decodificar de Windows-1252 para UTF-8
                 let (conteudo, _, _) = WINDOWS_1252.decode(&bytes);
-                println!("Conteúdo decodificado:\n{}", conteudo);
 
                 // Aqui você pode começar a fazer o parse:
+                self.data = InterfaceRHData::default();
+                
                 for linha in conteudo.lines() {
-                    InterfaceRH::parse_rep_line(linha)
-                }
+                    InterfaceRH::parse_rep_line(self, linha)
+                };
+                
             }
             Err(e) => eprintln!("Erro ao ler o arquivo: {}", e),
         }
 
     }
-    fn parse_rep_line(linha: &str){
-        println!("*--*--*--*--*--*--*--*--*--*--*");
-        println!("linha: {}", linha);
-        println!("----");
+    fn parse_rep_line(&mut self, linha: &str){
         if let Some(c) = linha.chars().nth(9){
             let n: i8 = c.to_digit(10).unwrap_or(0) as i8;
             if let Some(tipo_registry) = RegistryTypes::get_type_by_number(n){
-                tipo_registry.parse(linha)
+                tipo_registry.parse(self, linha)
             }else{
                 println!("nao tem tipo com esse numero...")
             }
@@ -417,7 +448,9 @@ impl InterfaceRH{
                             .set_title("SELECIONE O ARQUIVO DE PONTO!")
                             .pick_file()
                         {
-                            InterfaceRH::decode_from_win1252_to_utf8(path);
+                            InterfaceRH::decode_from_win1252_to_utf8(self, path);
+                            let agora_local: DateTime<Local> = Local::now();
+                            self.last_afd_got = Some(agora_local);
 
                         } else {
                             println!("Nenhum arquivo selecionado.");
@@ -432,9 +465,17 @@ impl InterfaceRH{
         match &self.screen{
             Screens::Main => {
                 column![
-                    text("qualquer coisa"),
-                    button("GetAFDFile")
-                        .on_press(Message::ButtonPressed(Buttons::GetAFDFile))
+                    row![
+                        if let Some(data) = &self.last_afd_got{
+                            text(format!("Ultimo AFD: {}", data))
+
+                        }else{
+                            text("PEGAR AFD!")
+                        },
+
+                        button("GetAFDFile")
+                            .on_press(Message::ButtonPressed(Buttons::GetAFDFile))
+                    ],
                 ].align_x(Center).into()
             }
         }
