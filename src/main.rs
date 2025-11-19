@@ -4,12 +4,13 @@ use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Element, Task as Command};
 use iced::widget::{column, row,  button, text};
 use iced::{Alignment::{Center}};
-use chrono::{DateTime, Local};
+use chrono::{DateTime, Datelike, Local, NaiveDate, Weekday};
 //
+#[derive(Debug, Clone)]
 enum Screens{
     Main,
+    Calendar
     // LobbyColab,
-    // Calendar
 }
 // enum DecodeTypes{
 //     WinUTF
@@ -354,6 +355,27 @@ impl fmt::Display for RegistryTypes{
         write!(f, "{}", s)
     }
 }
+struct SelDate{
+    day: u8,
+    month: u8,
+    year: u32,
+}
+impl Default for SelDate{
+    fn default()->Self{
+        let agora_local = Local::now();
+        Self{
+            day: agora_local.day() as u8,
+            month: agora_local.month() as u8,
+            year: agora_local.year() as u32
+        }
+    }
+}
+impl SelDate{
+    fn get_week_day(&self)->chrono::Weekday{
+        let date = NaiveDate::from_ymd(self.year as i32, self.month as u32, self.day as u32);
+        date.weekday()
+    }
+}
 
 struct InterfaceRHData{
     cabecalho: Option<Cabecalho>,
@@ -381,12 +403,20 @@ impl Default for InterfaceRHData{
 struct InterfaceRH{
     screen: Screens,
     last_afd_got: Option<DateTime<Local>>,
+    sel_date: SelDate,
     data: InterfaceRHData
+}
+#[derive(Debug, Clone)]
+enum UpDownValue{
+    Year,
+    Month,
 }
 
 #[derive(Debug, Clone)]
 enum Buttons{
-    GetAFDFile
+    GetAFDFile,
+    SwitchTo(Screens),
+    UpDownButton(i32, UpDownValue)
 }
 
 #[derive(Debug, Clone)]
@@ -399,13 +429,41 @@ impl Default for InterfaceRH{
         Self{
             screen: Screens::Main,
             last_afd_got: None,
+            sel_date: SelDate::default(),
             data: InterfaceRHData::default()
         }
     }
-
 }
 
 impl InterfaceRH{
+    fn int_to_month_pt(mes_int: u8) -> Option<&'static str>{
+        match mes_int{
+            1=>Some("Janeiro"),
+            2=>Some("Fevereiro"),
+            3=>Some("Marco"),
+            4=>Some("Abril"),
+            5=>Some("Maio"),
+            6=>Some("Junho"),
+            7=>Some("Julho"),
+            8=>Some("Agosto"),
+            9=>Some("Setembro"),
+            10=>Some("Outubro"),
+            11=>Some("Novembro"),
+            12=>Some("Dezembro"),
+            _=>None
+        }
+    }
+    fn weekday_pt(wd: chrono::Weekday) -> &'static str{
+        match wd{
+            chrono::Weekday::Mon => "Segunda-feira",
+            chrono::Weekday::Tue => "Terca-feira",
+            chrono::Weekday::Wed => "Quarta-feira",
+            chrono::Weekday::Thu => "Quinta-feira",
+            chrono::Weekday::Fri => "Sexta-feira",
+            chrono::Weekday::Sat => "Sabado",
+            chrono::Weekday::Sun => "Domingo"
+        }
+    }
     fn decode_from_win1252_to_utf8(&mut self, path: PathBuf){
         match fs::read(&path) {
             Ok(bytes) => {
@@ -436,11 +494,12 @@ impl InterfaceRH{
         }else{
             println!("Sem caractere na posicao 10")
         }
-
     }
+
     fn update(&mut self, message: Message) -> Command<Message>{
         match message{
             Message::ButtonPressed(button) => {
+                // println!("A Button got pressed!");
                 match button{
                     Buttons::GetAFDFile => {
                         if let Some(path) = FileDialog::new()
@@ -455,28 +514,94 @@ impl InterfaceRH{
                         } else {
                             println!("Nenhum arquivo selecionado.");
                         }
+                    },
+                    Buttons::SwitchTo(screen) => {
+                        // println!("Mudando de tela!");
+                        match screen{
+                            Screens::Main => self.screen = Screens::Main,
+                            Screens::Calendar => {
+                                self.screen = Screens::Calendar
+                            }
+                        }
+                    }
+                    Buttons::UpDownButton(delta, campo) => {
+                        match campo{
+                            UpDownValue::Year => {
+                                if delta >= 0 {
+                                    self.sel_date.year = self.sel_date.year.saturating_add(delta as u32);
+                                }else{
+                                    self.sel_date.year = self.sel_date.year.saturating_sub((-delta) as u32);
+                                }
+                            },
+                            UpDownValue::Month => {
+                                let max = 12;
+                                let min = 1;
+                                if delta >= 0{
+                                    self.sel_date.month = self.sel_date.month.saturating_add(delta as u8);
+                                }else{
+                                    self.sel_date.month = self.sel_date.month.saturating_sub((-delta) as u8);
+                                }
+                                if self.sel_date.month > max{
+                                    self.sel_date.month = 1
+                                }else if self.sel_date.month < min{
+                                    self.sel_date.month = 12
+                                }
+                            },
+                        }
                     }
                 }
                 Command::none()
             }
         }
     }
+
     fn view(&self) -> Element<'_, Message> {
         match &self.screen{
             Screens::Main => {
                 column![
-                    row![
-                        if let Some(data) = &self.last_afd_got{
-                            text(format!("Ultimo AFD: {}", data))
+                    if let Some(data) = &self.last_afd_got{
+                        text(format!("Ultimo AFD: {}", data.format("%d-%m-%Y %H:%M")))
 
-                        }else{
-                            text("PEGAR AFD!")
-                        },
-
-                        button("GetAFDFile")
-                            .on_press(Message::ButtonPressed(Buttons::GetAFDFile))
-                    ],
+                    }else{
+                        text("PEGAR AFD!")
+                    },
+                    button("GetAFDFile")
+                        .on_press(Message::ButtonPressed(Buttons::GetAFDFile)),
+                    button("Calendario")
+                        .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Calendar)))
                 ].align_x(Center).into()
+            },
+            Screens::Calendar => {
+                column![
+                    row![
+                        button(text("Voltar")).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Main)))
+                    ],
+                    row![
+                        text("CALENDAR")
+                    ],
+                    row![
+                        button("<").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Year))),
+                        text(format!("{}", self.sel_date.year)),
+                        button(">").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Year))),
+                    ],
+                    row![
+                        button("<").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Month))),
+                        text(format!("{}", Self::int_to_month_pt(self.sel_date.month).unwrap().to_string())),
+                        button(">").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Month))),
+                    ],
+                    row![
+                        text(format!("dia: {}, {}", self.sel_date.day, Self::weekday_pt(self.sel_date.get_week_day())))
+                    ],
+                    row![
+                        text("Dom"),
+                        text("Seg"),
+                        text("Ter"),
+                        text("Qua"),
+                        text("Qui"),
+                        text("Sex"),
+                        text("Sab")
+                    ],
+                ].into()
             }
         }
     }
