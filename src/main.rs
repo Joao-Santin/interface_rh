@@ -2,8 +2,8 @@ use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Element, Task as Command};
-use iced::widget::{column, row,  button, text};
-use iced::{Alignment::{Center}};
+use iced::widget::{button, column, row, text, Space};
+use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
 use chrono::{DateTime, Datelike, Local, NaiveDate, Weekday};
 //
 #[derive(Debug, Clone)]
@@ -575,33 +575,46 @@ impl InterfaceRH{
                 column![
                     row![
                         button(text("Voltar")).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Main)))
-                    ],
+                    ].spacing(10),
                     row![
                         text("CALENDAR")
-                    ],
+                    ].spacing(10),
                     row![
-                        button("<").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Year))),
+                        button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Year))),
                         text(format!("{}", self.sel_date.year)),
-                        button(">").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Year))),
-                    ],
-                    row![
-                        button("<").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Month))),
+                        button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Year))),
+                        Space::with_width(Length::Fixed(15.0)),
+                        button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Month))),
                         text(format!("{}", Self::int_to_month_pt(self.sel_date.month).unwrap().to_string())),
-                        button(">").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Month))),
-                    ],
+                        button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Month))),
+                    ].spacing(10),
                     row![
                         text(format!("dia: {}, {}", self.sel_date.day, Self::weekday_pt(self.sel_date.get_week_day())))
-                    ],
+                    ].spacing(10),
                     row![
-                        text("Dom"),
-                        text("Seg"),
-                        text("Ter"),
-                        text("Qua"),
-                        text("Qui"),
-                        text("Sex"),
-                        text("Sab")
-                    ],
-                ].into()
+                        column![
+                            text("Dom"),
+                        ].spacing(5).align_x(Center),
+                        column![
+                            text("Seg"),
+                        ].spacing(5).align_x(Center),
+                        column![
+                            text("Ter"),
+                        ].spacing(5).align_x(Center),
+                        column![
+                            text("Qua"),
+                        ].spacing(5).align_x(Center),
+                        column![
+                            text("Qui"),
+                        ].spacing(5).align_x(Center),
+                        column![
+                            text("Sex"),
+                        ].spacing(5).align_x(Center),
+                        column![
+                            text("Sab"),
+                        ].spacing(5).align_x(Center),
+                    ].spacing(10),
+                ].width(Fill).height(Fill).align_x(Center).into()
             }
         }
     }
