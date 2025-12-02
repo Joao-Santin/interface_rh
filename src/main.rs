@@ -1,10 +1,10 @@
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
-use iced::{Element, Task as Command};
-use iced::widget::{button, column, row, text, Space};
+use iced::{Color, Element, Task as Command};
+use iced::widget::{button, column, container, row, scrollable, text, Column, Space, Text};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
-use chrono::{DateTime, Datelike, Local, NaiveDate, Weekday};
+use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
 //
 #[derive(Debug, Clone)]
 enum Screens{
@@ -20,7 +20,6 @@ struct AFDBase{
     tipo: RegistryTypes
     
 }
-//voltar aqui
 struct Cabecalho{
     base: AFDBase,
     tipo_empregador: String,
@@ -356,6 +355,7 @@ impl fmt::Display for RegistryTypes{
     }
 }
 struct SelDate{
+    weekday: chrono::Weekday,
     day: u8,
     month: u8,
     year: u32,
@@ -363,17 +363,34 @@ struct SelDate{
 impl Default for SelDate{
     fn default()->Self{
         let agora_local = Local::now();
+        let dia = agora_local.day();
+        let mes = agora_local.month();
+        let ano = agora_local.year();
+        let weekday = NaiveDate::from_ymd(ano, mes, dia).weekday(); 
+
         Self{
-            day: agora_local.day() as u8,
-            month: agora_local.month() as u8,
-            year: agora_local.year() as u32
+            weekday, 
+            day: dia as u8,
+            month: mes as u8,
+            year: ano as u32
         }
     }
 }
 impl SelDate{
     fn get_week_day(&self)->chrono::Weekday{
-        let date = NaiveDate::from_ymd(self.year as i32, self.month as u32, self.day as u32);
+        let month = self.month as u32;
+        let date = NaiveDate::from_ymd(self.year as i32, month, self.day as u32);
         date.weekday()
+    }
+    fn get_month_day_weekday(&self)->Vec<(chrono::Weekday, u32)>{
+        let month = self.month as u32;
+        let mut date = NaiveDate::from_ymd_opt(self.year as i32, month, 1).expect("data invalida");
+        let mut days = Vec::new();
+        while date.month() == month{
+            days.push((date.weekday(), date.day()));
+            date += Duration::days(1);
+        }
+        days
     }
 }
 
@@ -416,7 +433,8 @@ enum UpDownValue{
 enum Buttons{
     GetAFDFile,
     SwitchTo(Screens),
-    UpDownButton(i32, UpDownValue)
+    UpDownButton(i32, UpDownValue),
+    SelDay(u32)
 }
 
 #[derive(Debug, Clone)]
@@ -549,6 +567,11 @@ impl InterfaceRH{
                             },
                         }
                     }
+                    Buttons::SelDay(dia) => {
+                        if dia > 0{
+                            self.sel_date.day = dia as u8;
+                        }
+                    }
                 }
                 Command::none()
             }
@@ -572,49 +595,107 @@ impl InterfaceRH{
                 ].align_x(Center).into()
             },
             Screens::Calendar => {
+                let mut dom: Column<Message> = column![text("Dom")].spacing(5).align_x(Center);
+                let mut seg: Column<Message> = column![text("Seg")].spacing(5).align_x(Center);
+                let mut ter: Column<Message> = column![text("Ter")].spacing(5).align_x(Center);
+                let mut qua: Column<Message> = column![text("Qua")].spacing(5).align_x(Center);
+                let mut qui: Column<Message> = column![text("Qui")].spacing(5).align_x(Center);
+                let mut sex: Column<Message> = column![text("Sex")].spacing(5).align_x(Center);
+                let mut sab: Column<Message> = column![text("Sab")].spacing(5).align_x(Center);
+                let dias = self.sel_date.get_month_day_weekday();
+                let first_weekday = dias.first().map(|(weekday, _)| *weekday);
+                match first_weekday{
+                        Some(Weekday::Sun) => (),
+                        Some(Weekday::Mon) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Tue) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))))
+                        },
+                        Some(Weekday::Wed) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Thu) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qua = qua.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Fri) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qua = qua.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qui = qui.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Sat) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qua = qua.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qui = qui.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            sex = sex.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        None => println!("Não funcionou")
+                        }
+                for (weekday, day) in dias {
+
+                    let day_button = if self.sel_date.day as u32 == day{
+                        button(text(format!("{} *",day.to_string())).color(Color::from_rgb(1.0, 0.0, 0.0))).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(day)))
+                    }else{
+                        button(text(day.to_string())).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(day)))
+                    };
+                    match weekday {
+                        Weekday::Sun => dom = dom.push(day_button),
+                        Weekday::Mon => seg = seg.push(day_button),
+                        Weekday::Tue => ter = ter.push(day_button),
+                        Weekday::Wed => qua = qua.push(day_button),
+                        Weekday::Thu => qui = qui.push(day_button),
+                        Weekday::Fri => sex = sex.push(day_button),
+                        Weekday::Sat => sab = sab.push(day_button),
+                    }
+                }
+                let mut acontecimentos: Column<Message> = column![
+                    row![
+                        text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5))
+                    ]
+                ];
                 column![
                     row![
                         button(text("Voltar")).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Main)))
                     ].spacing(10),
-                    row![
-                        text("CALENDAR")
-                    ].spacing(10),
-                    row![
-                        button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Year))),
-                        text(format!("{}", self.sel_date.year)),
-                        button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Year))),
-                        Space::with_width(Length::Fixed(15.0)),
-                        button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Month))),
-                        text(format!("{}", Self::int_to_month_pt(self.sel_date.month).unwrap().to_string())),
-                        button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Month))),
-                    ].spacing(10),
-                    row![
-                        text(format!("dia: {}, {}", self.sel_date.day, Self::weekday_pt(self.sel_date.get_week_day())))
-                    ].spacing(10),
-                    row![
-                        column![
-                            text("Dom"),
-                        ].spacing(5).align_x(Center),
-                        column![
-                            text("Seg"),
-                        ].spacing(5).align_x(Center),
-                        column![
-                            text("Ter"),
-                        ].spacing(5).align_x(Center),
-                        column![
-                            text("Qua"),
-                        ].spacing(5).align_x(Center),
-                        column![
-                            text("Qui"),
-                        ].spacing(5).align_x(Center),
-                        column![
-                            text("Sex"),
-                        ].spacing(5).align_x(Center),
-                        column![
-                            text("Sab"),
-                        ].spacing(5).align_x(Center),
-                    ].spacing(10),
-                ].width(Fill).height(Fill).align_x(Center).into()
+                    column![
+                        row![
+                            text("CALENDARIO").size(30.0).color(Color::from_rgb(0.5, 0.5, 0.5))
+                        ].spacing(10),
+                        Space::with_height(Length::Fixed(15.0)),
+                        row![
+                            text(format!("{}, {} de",Self::weekday_pt(self.sel_date.get_week_day()), self.sel_date.day)),
+                            button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Month))),
+                            text(format!("{}", Self::int_to_month_pt(self.sel_date.month).unwrap().to_string())),
+                            button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Month))),
+                            text("de"),
+                            button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::Year))),
+                            text(format!("{}", self.sel_date.year)),
+                            button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::Year))),
+                        ].spacing(10).align_y(Center),
+                        Space::with_height(Length::Fixed(15.0)),
+                        row![
+                            dom,
+                            seg,
+                            ter,
+                            qua,
+                            qui,
+                            sex,
+                            sab,
+                        ].spacing(10),
+                        Space::with_height(Length::Fixed(25.0)),
+                        scrollable(container(acontecimentos).align_x(Center).width(Fill)).height(Fill),
+                    ].width(Fill).height(Fill).align_x(Center)
+                ].into()
             }
         }
     }
