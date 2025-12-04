@@ -2,7 +2,7 @@ use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
-use iced::widget::{button, column, container, row, scrollable, text, Column, Space, Text};
+use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
 //
@@ -27,8 +27,8 @@ struct Cabecalho{
     cno_empregador: String,
     razao_social: String,
     id_rep: String,
-    data_inicio: String,
-    data_final: String,
+    data_inicio: SelDate,
+    data_final: SelDate,
     geracao_arquivo: String,
     versao_leiaute_afd: String,
     cnpj_fabricante_rep: String,
@@ -38,7 +38,7 @@ struct Cabecalho{
 
 struct CreateUpdateEmpresa{
     base: AFDBase,
-    date_time: String,
+    date_time: SelDate,
     cpf_admin: String,
     tipo_empregador: String,
     cnpj_empregador: String,
@@ -49,21 +49,21 @@ struct CreateUpdateEmpresa{
 }
 struct MarcacaoPonto{
     base: AFDBase,
-    date_time: String,
+    date_time: SelDate,
     cpf_empregado: String,
     registro_hexa: String,
 }
 struct AjusteRelogio{
     base: AFDBase,
-    date_time_antes_registro: String,
-    date_time_ajustado: String,
+    date_time_antes_registro: SelDate,
+    date_time_ajustado: SelDate,
     cpf_adm: String,
     registro_hexa: String,
 
 }
 struct CreateaUpdateDeleteEmpregado{
     base: AFDBase,
-    date_time: String,
+    date_time: SelDate,
     tipo_operacao: String,
     cpf_empregado: String,
     nome_empregado: String,
@@ -74,7 +74,7 @@ struct CreateaUpdateDeleteEmpregado{
 
 struct SensivelREP{
     base: AFDBase,
-    date_time: String,
+    date_time: SelDate,
     evento: String,
 }
 // struct MarcacaoPontoRepP{
@@ -139,10 +139,10 @@ impl RegistryTypes{
                 // println!("id_rep: {}", id_rep);
 
                 let data_inicio = &linha[206..216];
-                // println!("data_inicio: {}", data_inicio);
+                println!("data_inicio: {}", data_inicio);
 
                 let data_final = &linha[216..226];
-                // println!("data_final: {}", data_final);
+                println!("data_final: {}", data_final);
 
                 let geracao_arquivo = &linha[226..250];
                 // println!("data/hora geracao arquivo: {}", geracao_arquivo);
@@ -170,8 +170,8 @@ impl RegistryTypes{
                     cno_empregador: cno_caepf.to_string(),
                     razao_social: razao_social.to_string(),
                     id_rep: id_rep.to_string(),
-                    data_inicio: data_inicio.to_string(),
-                    data_final: data_final.to_string(),
+                    data_inicio: SelDate::new_by_str(data_inicio),
+                    data_final: SelDate::new_by_str(data_final),
                     geracao_arquivo: geracao_arquivo.to_string(),
                     versao_leiaute_afd: versao_leiaute_afd.to_string(),
                     cnpj_fabricante_rep: cnpj_fabricante_rep.to_string(),
@@ -211,7 +211,7 @@ impl RegistryTypes{
                 // println!("registro_hexa: {}", registro_hexa);
                 let createupdateempresa = CreateUpdateEmpresa{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
-                    date_time: date_time.to_string(),
+                    date_time: SelDate::new_by_str(date_time),
                     cpf_admin: cpf_admin.to_string(),
                     tipo_empregador: tipo_empregador.to_string(),
                     cnpj_empregador: cnpj_empregador.to_string(),
@@ -236,7 +236,7 @@ impl RegistryTypes{
                 // println!("registro hexa: {}", registro_hexa);
                 let marcacaoponto = MarcacaoPonto{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
-                    date_time: date_time.to_string(),
+                    date_time: SelDate::new_by_str(date_time),
                     cpf_empregado: cpf_empregado.to_string(),
                     registro_hexa: registro_hexa.to_string(),
                 };
@@ -258,8 +258,8 @@ impl RegistryTypes{
                 // println!("registro_hexa: {}", registro_hexa);
                 let ajuste_relogio = AjusteRelogio{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
-                    date_time_antes_registro: date_time_antes_registro.to_string(),
-                    date_time_ajustado: date_time_ajustado.to_string(),
+                    date_time_antes_registro: SelDate::new_by_str(date_time_antes_registro),
+                    date_time_ajustado: SelDate::new_by_str(date_time_ajustado),
                     cpf_adm: cpf_adm.to_string(),
                     registro_hexa: registro_hexa.to_string()
                 };
@@ -292,7 +292,7 @@ impl RegistryTypes{
                 // println!("registro hexa: {}", registro_hexa);
                 let createupdatedeleteempregado = CreateaUpdateDeleteEmpregado{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
-                    date_time: date_time.to_string(),
+                    date_time: SelDate::new_by_str(date_time),
                     tipo_operacao: tipo_operacao.to_string(),
                     cpf_empregado: cpf_empregado.to_string(),
                     nome_empregado: nome_empregado.to_string(),
@@ -328,7 +328,7 @@ impl RegistryTypes{
 
                 let sensivelrep = SensivelREP{
                     base: AFDBase { nsr: nsr.to_string(), tipo: registro },
-                    date_time: date_time.to_string(),
+                    date_time: SelDate::new_by_str(date_time),
                     evento: evento.to_string()
                 };
                 interfacerh.data.sensivelrep.push(sensivelrep)
@@ -392,6 +392,23 @@ impl SelDate{
         }
         days
     }
+    fn new_by_str(data_string: &str)->Self{
+        let data = NaiveDate::parse_from_str(data_string, "%Y-%m-%d").expect("Data invalida");
+        let dia = data.day();
+        let mes = data.month();
+        let ano = data.year();
+        let weekday = NaiveDate::from_ymd(ano, mes, dia).weekday();
+        Self{
+            weekday,
+            day: dia as u8,
+            month: mes as u8,
+            year: ano as u32
+        }
+    }
+}
+//voltar aqui!!!
+trait Acontecimento {
+    fn to_row(&self) -> Row<Message>;
 }
 
 struct InterfaceRHData{
@@ -659,10 +676,14 @@ impl InterfaceRH{
                     }
                 }
                 let mut acontecimentos: Column<Message> = column![
-                    row![
-                        text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5))
-                    ]
+                    text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
                 ];
+                acontecimentos = acontecimentos.push(
+                    row![
+                        text("adicionado, só isso mesmo")
+
+                    ]
+                );
                 column![
                     row![
                         button(text("Voltar")).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Main)))
