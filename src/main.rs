@@ -35,7 +35,18 @@ struct Cabecalho{
     modelo_rep: String,
     registro_hexa: String,
 }
+impl Acontecimento for Cabecalho{
+    fn to_row(&self) -> Row<Message> {
+        row![
+            text("Cabecalho:: "),
+            text(format!("Inicio: {}", self.data_inicio)),
+            text(format!("Fim: {}", self.data_final))
 
+        ]
+    }
+}
+
+//continuar aqui!!!
 struct CreateUpdateEmpresa{
     base: AFDBase,
     date_time: SelDate,
@@ -406,6 +417,12 @@ impl SelDate{
         }
     }
 }
+impl fmt::Display for SelDate{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
+        write!(f, "{:02}/{:02}/{}", self.day, self.month, self.year)
+    }
+}
+
 //voltar aqui!!!
 trait Acontecimento {
     fn to_row(&self) -> Row<Message>;
