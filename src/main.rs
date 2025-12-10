@@ -1,8 +1,9 @@
+use std::collections::HashSet;
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
-use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text};
+use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
 //
@@ -41,7 +42,6 @@ impl Acontecimento for Cabecalho{
             text("Cabecalho:: "),
             text(format!("Inicio: {}", self.data_inicio)),
             text(format!("Fim: {}", self.data_final))
-
         ]
     }
 }
@@ -58,11 +58,27 @@ struct CreateUpdateEmpresa{
     local_servico: String,
     registro_hexa: String,
 }
+impl Acontecimento for CreateUpdateEmpresa{
+    fn to_row(&self) -> Row<Message>{
+        row![
+            text("CreateUpdateEmpresa"),
+            text("TODO!!!")
+        ]
+    }
+}
 struct MarcacaoPonto{
     base: AFDBase,
     date_time: SelDate,
     cpf_empregado: String,
     registro_hexa: String,
+}
+impl Acontecimento for MarcacaoPonto{
+    fn to_row(&self) -> Row<Message>{
+        row![
+            text("MarcacaoPonto"),
+            text("TODO!!!")
+        ]
+    }
 }
 struct AjusteRelogio{
     base: AFDBase,
@@ -71,6 +87,14 @@ struct AjusteRelogio{
     cpf_adm: String,
     registro_hexa: String,
 
+}
+impl Acontecimento for AjusteRelogio{
+    fn to_row(&self) -> Row<Message>{
+        row![
+            text("AjusteRelogio"),
+            text("TODO!!!")
+        ]
+    }
 }
 struct CreateaUpdateDeleteEmpregado{
     base: AFDBase,
@@ -82,11 +106,27 @@ struct CreateaUpdateDeleteEmpregado{
     cpf_adm: String,
     registro_hexa: String,
 }
+impl Acontecimento for CreateaUpdateDeleteEmpregado{
+    fn to_row(&self) -> Row<Message>{
+        row![
+            text("CreateUpdateDeleteEmpregado"),
+            text("TODO!!!")
+        ]
+    }
+}
 
 struct SensivelREP{
     base: AFDBase,
     date_time: SelDate,
     evento: String,
+}
+impl Acontecimento for SensivelREP{
+    fn to_row(&self) -> Row<Message>{
+        row![
+            text("SensivelREP"),
+            text("TODO!!!")
+        ]
+    }
 }
 // struct MarcacaoPontoRepP{
 //     base: AFDBase
@@ -365,6 +405,7 @@ impl fmt::Display for RegistryTypes{
         write!(f, "{}", s)
     }
 }
+#[derive(PartialEq)]
 struct SelDate{
     weekday: chrono::Weekday,
     day: u8,
@@ -416,6 +457,10 @@ impl SelDate{
             year: ano as u32
         }
     }
+    fn to_string(&self)-> String{
+        let string_resultante = format!("{}-{}-{}",self.day.to_string(), self.month.to_string(), self.year.to_string());
+        string_resultante
+        }
 }
 impl fmt::Display for SelDate{
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result{
@@ -423,7 +468,6 @@ impl fmt::Display for SelDate{
     }
 }
 
-//voltar aqui!!!
 trait Acontecimento {
     fn to_row(&self) -> Row<Message>;
 }
@@ -450,11 +494,39 @@ impl Default for InterfaceRHData{
         }
     }
 }
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum RHFiltro{
+    Cabecalho,
+    CreateUpdateEmpresa,
+    MarcacaoPonto,
+    AjusteRelogio,
+    CreateUpdateDeleteEmpregado,
+    SensivelREP,
+}
+
+struct InterfaceRHFiltros{
+    ativos: HashSet<RHFiltro>
+}
+impl Default for InterfaceRHFiltros{
+    fn default() -> Self{
+        Self{
+            ativos: HashSet::from([
+                RHFiltro::Cabecalho,
+                RHFiltro::CreateUpdateEmpresa,
+                RHFiltro::MarcacaoPonto,
+                RHFiltro::AjusteRelogio,
+                RHFiltro::CreateUpdateDeleteEmpregado,
+                RHFiltro::SensivelREP,
+            ])
+        }
+    }
+}
 
 struct InterfaceRH{
     screen: Screens,
     last_afd_got: Option<DateTime<Local>>,
     sel_date: SelDate,
+    filtros: InterfaceRHFiltros,
     data: InterfaceRHData
 }
 #[derive(Debug, Clone)]
@@ -473,7 +545,8 @@ enum Buttons{
 
 #[derive(Debug, Clone)]
 enum Message{
-    ButtonPressed(Buttons)
+    ButtonPressed(Buttons),
+    Toggle(RHFiltro, bool),
 }
 
 impl Default for InterfaceRH{
@@ -482,6 +555,7 @@ impl Default for InterfaceRH{
             screen: Screens::Main,
             last_afd_got: None,
             sel_date: SelDate::default(),
+            filtros: InterfaceRHFiltros::default(),
             data: InterfaceRHData::default()
         }
     }
@@ -547,6 +621,13 @@ impl InterfaceRH{
             println!("Sem caractere na posicao 10")
         }
     }
+    fn check_acontecimentos_by_day(&mut self)->Vec<Row<Message>>{
+        self.data.createupdateempresa
+            .iter()
+            .filter(|i| i.date_time == self.sel_date)
+            .map(|i| i.to_row())
+            .collect()
+    }
 
     fn update(&mut self, message: Message) -> Command<Message>{
         match message{
@@ -608,7 +689,17 @@ impl InterfaceRH{
                     }
                 }
                 Command::none()
+            },
+            Message::Toggle(filtro, true)=>{
+                self.filtros.ativos.insert(filtro);
+                Command::none()
+            },
+            Message::Toggle(filtro, false)=>{
+                self.filtros.ativos.remove(&filtro);
+                Command::none()
             }
+            
+        
         }
     }
 
@@ -709,6 +800,14 @@ impl InterfaceRH{
                         row![
                             text("CALENDARIO").size(30.0).color(Color::from_rgb(0.5, 0.5, 0.5))
                         ].spacing(10),
+                        row![
+                            checkbox("Cabecalho", self.filtros.ativos.contains(&RHFiltro::Cabecalho)).on_toggle(|v| Message::Toggle(RHFiltro::Cabecalho, v)),
+                            checkbox("CreateUpdateEmpresa", self.filtros.ativos.contains(&RHFiltro::CreateUpdateEmpresa)).on_toggle(|v| Message::Toggle(RHFiltro::CreateUpdateEmpresa, v)),
+                            checkbox("MarcacaoPonto", self.filtros.ativos.contains(&RHFiltro::MarcacaoPonto)).on_toggle(|v| Message::Toggle(RHFiltro::MarcacaoPonto, v)),
+                            checkbox("AjusteRelogio", self.filtros.ativos.contains(&RHFiltro::AjusteRelogio)).on_toggle(|v| Message::Toggle(RHFiltro::AjusteRelogio, v)),
+                            checkbox("Empregados", self.filtros.ativos.contains(&RHFiltro::CreateUpdateDeleteEmpregado)).on_toggle(|v| Message::Toggle(RHFiltro::CreateUpdateDeleteEmpregado, v)),
+                            checkbox("OPSensivel", self.filtros.ativos.contains(&RHFiltro::SensivelREP)).on_toggle(|v| Message::Toggle(RHFiltro::SensivelREP, v)),
+                        ].spacing(10),
                         Space::with_height(Length::Fixed(15.0)),
                         row![
                             text(format!("{}, {} de",Self::weekday_pt(self.sel_date.get_week_day()), self.sel_date.day)),
@@ -744,7 +843,7 @@ impl InterfaceRH{
 fn main() -> iced::Result{
     dotenv::dotenv().ok();
     iced::application("Interface RH", InterfaceRH::update, InterfaceRH::view)
-        .window_size((800.0, 600.0))
+        .window_size((1000.0, 600.0))
         .run()
 }
 // fn main() {
