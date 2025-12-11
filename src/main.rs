@@ -16,6 +16,7 @@ enum Screens{
 // enum DecodeTypes{
 //     WinUTF
 // }
+#[derive(Debug)]
 struct AFDBase{
     nsr: String,
     tipo: RegistryTypes
@@ -114,7 +115,6 @@ impl Acontecimento for CreateaUpdateDeleteEmpregado{
         ]
     }
 }
-
 struct SensivelREP{
     base: AFDBase,
     date_time: SelDate,
@@ -137,6 +137,7 @@ impl Acontecimento for SensivelREP{
 //
 // }
 
+#[derive(Debug)]
 enum RegistryTypes{
     Cabecalho,
     CreateUpdateEmpresa,
@@ -190,10 +191,10 @@ impl RegistryTypes{
                 // println!("id_rep: {}", id_rep);
 
                 let data_inicio = &linha[206..216];
-                println!("data_inicio: {}", data_inicio);
+                // println!("data_inicio: {}", data_inicio);
 
                 let data_final = &linha[216..226];
-                println!("data_final: {}", data_final);
+                // println!("data_final: {}", data_final);
 
                 let geracao_arquivo = &linha[226..250];
                 // println!("data/hora geracao arquivo: {}", geracao_arquivo);
@@ -445,7 +446,8 @@ impl SelDate{
         days
     }
     fn new_by_str(data_string: &str)->Self{
-        let data = NaiveDate::parse_from_str(data_string, "%Y-%m-%d").expect("Data invalida");
+        let data_string_formatada = &data_string[..10];
+        let data = NaiveDate::parse_from_str(data_string_formatada, "%Y-%m-%d").expect("Data invalida");
         let dia = data.day();
         let mes = data.month();
         let ano = data.year();
@@ -473,6 +475,8 @@ trait Acontecimento {
 }
 
 struct InterfaceRHData{
+    //voltar aqui
+    funcionarios: HashMap<>,
     cabecalho: Option<Cabecalho>,
     createupdateempresa: Vec<CreateUpdateEmpresa>,
     marcacaoponto: Vec<MarcacaoPonto>,
@@ -621,12 +625,40 @@ impl InterfaceRH{
             println!("Sem caractere na posicao 10")
         }
     }
-    fn check_acontecimentos_by_day(&mut self)->Vec<Row<Message>>{
-        self.data.createupdateempresa
+    fn get_acontecimentos_by_day(&self)->Column<Message>{
+
+        let row_createupdateempresa = self.data.createupdateempresa
             .iter()
             .filter(|i| i.date_time == self.sel_date)
-            .map(|i| i.to_row())
-            .collect()
+            .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateEmpresa))
+            .map(|i| i.to_row().into());
+        let row_marcacaoponto = self.data.marcacaoponto
+            .iter()
+            .filter(|i| i.date_time == self.sel_date)
+            .filter(|_| self.filtros.ativos.contains(&RHFiltro::MarcacaoPonto))
+            .map(|i| i.to_row().into());
+        let row_ajusterelogio = self.data.ajusterelogio
+            .iter()
+            .filter(|i| i.date_time_ajustado == self.sel_date)
+            .filter(|_| self.filtros.ativos.contains(&RHFiltro::AjusteRelogio))
+            .map(|i| i.to_row().into());
+        let row_createupdatedeleteempregado = self.data.createupdatedeleteempregado
+            .iter()
+            .filter(|i| i.date_time == self.sel_date)
+            .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateDeleteEmpregado))
+            .map(|i| i.to_row().into());
+        let row_sensivelrep = self.data.sensivelrep
+            .iter()
+            .filter(|i| i.date_time == self.sel_date)
+            .filter(|_| self.filtros.ativos.contains(&RHFiltro::SensivelREP))
+            .map(|i| i.to_row().into());
+
+        let column = Column::with_children(row_createupdateempresa
+            .chain(row_marcacaoponto)
+            .chain(row_ajusterelogio)
+            .chain(row_createupdatedeleteempregado)
+            .chain(row_sensivelrep));
+        column
     }
 
     fn update(&mut self, message: Message) -> Command<Message>{
@@ -665,6 +697,7 @@ impl InterfaceRH{
                                 }else{
                                     self.sel_date.year = self.sel_date.year.saturating_sub((-delta) as u32);
                                 }
+                                self.sel_date.weekday = self.sel_date.get_week_day()
                             },
                             UpDownValue::Month => {
                                 let max = 12;
@@ -679,6 +712,7 @@ impl InterfaceRH{
                                 }else if self.sel_date.month < min{
                                     self.sel_date.month = 12
                                 }
+                                self.sel_date.weekday = self.sel_date.get_week_day()
                             },
                         }
                     }
@@ -686,6 +720,7 @@ impl InterfaceRH{
                         if dia > 0{
                             self.sel_date.day = dia as u8;
                         }
+                        self.sel_date.weekday = self.sel_date.get_week_day()
                     }
                 }
                 Command::none()
@@ -698,8 +733,6 @@ impl InterfaceRH{
                 self.filtros.ativos.remove(&filtro);
                 Command::none()
             }
-            
-        
         }
     }
 
@@ -787,10 +820,7 @@ impl InterfaceRH{
                     text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
                 ];
                 acontecimentos = acontecimentos.push(
-                    row![
-                        text("adicionado, só isso mesmo")
-
-                    ]
+                    self.get_acontecimentos_by_day()
                 );
                 column![
                     row![
