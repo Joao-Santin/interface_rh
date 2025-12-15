@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
@@ -8,15 +8,16 @@ use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
 use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
 //
 #[derive(Debug, Clone)]
-enum Screens{
+enum Screen{
     Main,
-    Calendar
+    Calendar,
+    Funcionarios
     // LobbyColab,
 }
 // enum DecodeTypes{
 //     WinUTF
 // }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct AFDBase{
     nsr: String,
     tipo: RegistryTypes
@@ -89,14 +90,17 @@ struct AjusteRelogio{
     registro_hexa: String,
 
 }
+//continuar aqui!!!
 impl Acontecimento for AjusteRelogio{
     fn to_row(&self) -> Row<Message>{
         row![
             text("AjusteRelogio"),
+            text("-"),
             text("TODO!!!")
         ]
     }
 }
+#[derive(Clone)]
 struct CreateaUpdateDeleteEmpregado{
     base: AFDBase,
     date_time: SelDate,
@@ -137,7 +141,7 @@ impl Acontecimento for SensivelREP{
 //
 // }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum RegistryTypes{
     Cabecalho,
     CreateUpdateEmpresa,
@@ -406,7 +410,7 @@ impl fmt::Display for RegistryTypes{
         write!(f, "{}", s)
     }
 }
-#[derive(PartialEq)]
+#[derive(PartialEq, Clone)]
 struct SelDate{
     weekday: chrono::Weekday,
     day: u8,
@@ -473,10 +477,22 @@ impl fmt::Display for SelDate{
 trait Acontecimento {
     fn to_row(&self) -> Row<Message>;
 }
+enum Periodo{
+    Manha,
+    Tarde,
+    Noite,
+}
+struct InfoAddFuncionario{
+    nome_correcao: Option<String>,
+    periodo: Periodo,
+    almoco: u8,
+    cargo: String,
+    salario: f32
+}
 
 struct InterfaceRHData{
-    //voltar aqui
-    funcionarios: HashMap<>,
+    funcionarios: HashMap<String, String>,
+    infoaddfuncionarios:HashMap<String, InfoAddFuncionario>,
     cabecalho: Option<Cabecalho>,
     createupdateempresa: Vec<CreateUpdateEmpresa>,
     marcacaoponto: Vec<MarcacaoPonto>,
@@ -489,6 +505,8 @@ struct InterfaceRHData{
 impl Default for InterfaceRHData{
     fn default() -> Self{
         Self{
+            funcionarios: HashMap::new(),
+            infoaddfuncionarios: HashMap::new(),
             cabecalho: None,
             createupdateempresa: Vec::new(),
             marcacaoponto: Vec::new(),
@@ -527,7 +545,7 @@ impl Default for InterfaceRHFiltros{
 }
 
 struct InterfaceRH{
-    screen: Screens,
+    screen: Screen,
     last_afd_got: Option<DateTime<Local>>,
     sel_date: SelDate,
     filtros: InterfaceRHFiltros,
@@ -542,7 +560,7 @@ enum UpDownValue{
 #[derive(Debug, Clone)]
 enum Buttons{
     GetAFDFile,
-    SwitchTo(Screens),
+    SwitchTo(Screen),
     UpDownButton(i32, UpDownValue),
     SelDay(u32)
 }
@@ -556,7 +574,7 @@ enum Message{
 impl Default for InterfaceRH{
     fn default() -> Self{
         Self{
-            screen: Screens::Main,
+            screen: Screen::Main,
             last_afd_got: None,
             sel_date: SelDate::default(),
             filtros: InterfaceRHFiltros::default(),
@@ -625,6 +643,10 @@ impl InterfaceRH{
             println!("Sem caractere na posicao 10")
         }
     }
+    fn get_funcionarios(&mut self){
+        let dados: HashMap<String, String> = self.data.createupdatedeleteempregado.iter().map(|i| (i.cpf_empregado.clone(), i.nome_empregado.clone().trim().to_string())).collect();
+        self.data.funcionarios = dados;
+    }
     fn get_acontecimentos_by_day(&self)->Column<Message>{
 
         let row_createupdateempresa = self.data.createupdateempresa
@@ -675,18 +697,19 @@ impl InterfaceRH{
                             InterfaceRH::decode_from_win1252_to_utf8(self, path);
                             let agora_local: DateTime<Local> = Local::now();
                             self.last_afd_got = Some(agora_local);
+                            self.get_funcionarios();
 
                         } else {
                             println!("Nenhum arquivo selecionado.");
                         }
                     },
                     Buttons::SwitchTo(screen) => {
-                        // println!("Mudando de tela!");
                         match screen{
-                            Screens::Main => self.screen = Screens::Main,
-                            Screens::Calendar => {
-                                self.screen = Screens::Calendar
+                            Screen::Main => self.screen = Screen::Main,
+                            Screen::Calendar => {
+                                self.screen = Screen::Calendar
                             }
+                            Screen::Funcionarios => self.screen = Screen::Funcionarios
                         }
                     }
                     Buttons::UpDownButton(delta, campo) => {
@@ -720,8 +743,8 @@ impl InterfaceRH{
                         if dia > 0{
                             self.sel_date.day = dia as u8;
                         }
-                        self.sel_date.weekday = self.sel_date.get_week_day()
-                    }
+                        self.sel_date.weekday = self.sel_date.get_week_day();
+}
                 }
                 Command::none()
             },
@@ -738,7 +761,7 @@ impl InterfaceRH{
 
     fn view(&self) -> Element<'_, Message> {
         match &self.screen{
-            Screens::Main => {
+            Screen::Main => {
                 column![
                     if let Some(data) = &self.last_afd_got{
                         text(format!("Ultimo AFD: {}", data.format("%d-%m-%Y %H:%M")))
@@ -749,10 +772,12 @@ impl InterfaceRH{
                     button("GetAFDFile")
                         .on_press(Message::ButtonPressed(Buttons::GetAFDFile)),
                     button("Calendario")
-                        .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Calendar)))
-                ].align_x(Center).into()
+                        .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Calendar))),
+                    button("Funcionarios")
+                        .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios)))
+                ].width(Fill).height(Fill).align_x(Center).into()
             },
-            Screens::Calendar => {
+            Screen::Calendar => {
                 let mut dom: Column<Message> = column![text("Dom")].spacing(5).align_x(Center);
                 let mut seg: Column<Message> = column![text("Seg")].spacing(5).align_x(Center);
                 let mut ter: Column<Message> = column![text("Ter")].spacing(5).align_x(Center);
@@ -824,7 +849,7 @@ impl InterfaceRH{
                 );
                 column![
                     row![
-                        button(text("Voltar")).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screens::Main)))
+                        button(text("Voltar")).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main)))
                     ].spacing(10),
                     column![
                         row![
@@ -864,6 +889,19 @@ impl InterfaceRH{
                     ].width(Fill).height(Fill).align_x(Center)
                 ].into()
             }
+            Screen::Funcionarios =>{
+                column![
+                    button("Voltar!")
+                        .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main))),
+                    column![
+                        text("Bom dia!"),
+                    ].width(Fill)
+                        .height(Fill)
+                        .align_x(Center)
+
+                ].into()
+            }
+
         }
     }
 
