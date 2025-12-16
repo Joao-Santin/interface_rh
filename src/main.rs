@@ -39,7 +39,7 @@ struct Cabecalho{
     registro_hexa: String,
 }
 impl Acontecimento for Cabecalho{
-    fn to_row(&self) -> Row<Message> {
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message> {
         row![
             text("Cabecalho:: "),
             text(format!("Inicio: {}", self.data_inicio)),
@@ -48,7 +48,6 @@ impl Acontecimento for Cabecalho{
     }
 }
 
-//continuar aqui!!!
 struct CreateUpdateEmpresa{
     base: AFDBase,
     date_time: SelDate,
@@ -61,13 +60,14 @@ struct CreateUpdateEmpresa{
     registro_hexa: String,
 }
 impl Acontecimento for CreateUpdateEmpresa{
-    fn to_row(&self) -> Row<Message>{
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("CreateUpdateEmpresa"),
             text("TODO!!!")
         ]
     }
 }
+
 struct MarcacaoPonto{
     base: AFDBase,
     date_time: SelDate,
@@ -75,9 +75,10 @@ struct MarcacaoPonto{
     registro_hexa: String,
 }
 impl Acontecimento for MarcacaoPonto{
-    fn to_row(&self) -> Row<Message>{
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
-            text("MarcacaoPonto"),
+            text("3 - Marcação de Ponto: -"),
+            text(format!("{}", data.funcionarios.get(&self.cpf_empregado).unwrap())),
             text("TODO!!!")
         ]
     }
@@ -90,9 +91,8 @@ struct AjusteRelogio{
     registro_hexa: String,
 
 }
-//continuar aqui!!!
 impl Acontecimento for AjusteRelogio{
-    fn to_row(&self) -> Row<Message>{
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("AjusteRelogio"),
             text("-"),
@@ -112,7 +112,7 @@ struct CreateaUpdateDeleteEmpregado{
     registro_hexa: String,
 }
 impl Acontecimento for CreateaUpdateDeleteEmpregado{
-    fn to_row(&self) -> Row<Message>{
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("CreateUpdateDeleteEmpregado"),
             text("TODO!!!")
@@ -125,7 +125,7 @@ struct SensivelREP{
     evento: String,
 }
 impl Acontecimento for SensivelREP{
-    fn to_row(&self) -> Row<Message>{
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("SensivelREP"),
             text("TODO!!!")
@@ -475,7 +475,7 @@ impl fmt::Display for SelDate{
 }
 
 trait Acontecimento {
-    fn to_row(&self) -> Row<Message>;
+    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>;
 }
 enum Periodo{
     Manha,
@@ -653,27 +653,27 @@ impl InterfaceRH{
             .iter()
             .filter(|i| i.date_time == self.sel_date)
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateEmpresa))
-            .map(|i| i.to_row().into());
+            .map(|i| i.to_row(&self.data).into());
         let row_marcacaoponto = self.data.marcacaoponto
             .iter()
             .filter(|i| i.date_time == self.sel_date)
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::MarcacaoPonto))
-            .map(|i| i.to_row().into());
+            .map(|i| i.to_row(&self.data).into());
         let row_ajusterelogio = self.data.ajusterelogio
             .iter()
             .filter(|i| i.date_time_ajustado == self.sel_date)
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::AjusteRelogio))
-            .map(|i| i.to_row().into());
+            .map(|i| i.to_row(&self.data).into());
         let row_createupdatedeleteempregado = self.data.createupdatedeleteempregado
             .iter()
             .filter(|i| i.date_time == self.sel_date)
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateDeleteEmpregado))
-            .map(|i| i.to_row().into());
+            .map(|i| i.to_row(&self.data).into());
         let row_sensivelrep = self.data.sensivelrep
             .iter()
             .filter(|i| i.date_time == self.sel_date)
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::SensivelREP))
-            .map(|i| i.to_row().into());
+            .map(|i| i.to_row(&self.data).into());
 
         let column = Column::with_children(row_createupdateempresa
             .chain(row_marcacaoponto)
