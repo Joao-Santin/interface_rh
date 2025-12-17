@@ -1,11 +1,12 @@
 use std::collections::{HashMap, HashSet};
+use std::usize;
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
 use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
-use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, Weekday};
+use chrono::{DateTime, Datelike,Timelike, Duration, Local, NaiveDate, NaiveTime, Weekday};
 //
 #[derive(Debug, Clone)]
 enum Screen{
@@ -77,10 +78,16 @@ struct MarcacaoPonto{
 impl Acontecimento for MarcacaoPonto{
     fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
-            text("3 - Marcação de Ponto: -"),
-            text(format!("{}", data.funcionarios.get(&self.cpf_empregado).unwrap())),
-            text("TODO!!!")
-        ]
+            if let Some(time) = self.date_time.time{
+                text(format!("{}", time.format("%H:%M:%S").to_string()))
+
+            }else{
+                text(format!("_indisponivel_"))
+            },
+            text("MARCACAO DE PONTO"),
+            text(format!("NOME: {}", data.funcionarios.get(&self.cpf_empregado).unwrap())),
+            text(format!("CPF: {}", &self.cpf_empregado)),
+        ].spacing(20)
     }
 }
 struct AjusteRelogio{
@@ -413,6 +420,7 @@ impl fmt::Display for RegistryTypes{
 #[derive(PartialEq, Clone)]
 struct SelDate{
     weekday: chrono::Weekday,
+    time: Option<NaiveTime>,
     day: u8,
     month: u8,
     year: u32,
@@ -427,6 +435,7 @@ impl Default for SelDate{
 
         Self{
             weekday, 
+            time: None,
             day: dia as u8,
             month: mes as u8,
             year: ano as u32
@@ -434,6 +443,9 @@ impl Default for SelDate{
     }
 }
 impl SelDate{
+    fn date(&self)->NaiveDate{
+        NaiveDate::from_ymd(self.year as i32, self.month as u32, self.day as u32)
+    }
     fn get_week_day(&self)->chrono::Weekday{
         let month = self.month as u32;
         let date = NaiveDate::from_ymd(self.year as i32, month, self.day as u32);
@@ -450,6 +462,12 @@ impl SelDate{
         days
     }
     fn new_by_str(data_string: &str)->Self{
+        let time = if data_string.len()>12{
+            let time_string = &data_string[11..19];
+            Some(NaiveTime::parse_from_str(time_string, "%H:%M:%S").expect("Hora invalida"))
+        }else{
+            None
+        };
         let data_string_formatada = &data_string[..10];
         let data = NaiveDate::parse_from_str(data_string_formatada, "%Y-%m-%d").expect("Data invalida");
         let dia = data.day();
@@ -458,6 +476,7 @@ impl SelDate{
         let weekday = NaiveDate::from_ymd(ano, mes, dia).weekday();
         Self{
             weekday,
+            time,
             day: dia as u8,
             month: mes as u8,
             year: ano as u32
@@ -651,27 +670,27 @@ impl InterfaceRH{
 
         let row_createupdateempresa = self.data.createupdateempresa
             .iter()
-            .filter(|i| i.date_time == self.sel_date)
+            .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateEmpresa))
             .map(|i| i.to_row(&self.data).into());
         let row_marcacaoponto = self.data.marcacaoponto
             .iter()
-            .filter(|i| i.date_time == self.sel_date)
+            .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::MarcacaoPonto))
             .map(|i| i.to_row(&self.data).into());
         let row_ajusterelogio = self.data.ajusterelogio
             .iter()
-            .filter(|i| i.date_time_ajustado == self.sel_date)
+            .filter(|i| i.date_time_ajustado.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::AjusteRelogio))
             .map(|i| i.to_row(&self.data).into());
         let row_createupdatedeleteempregado = self.data.createupdatedeleteempregado
             .iter()
-            .filter(|i| i.date_time == self.sel_date)
+            .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateDeleteEmpregado))
             .map(|i| i.to_row(&self.data).into());
         let row_sensivelrep = self.data.sensivelrep
             .iter()
-            .filter(|i| i.date_time == self.sel_date)
+            .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::SensivelREP))
             .map(|i| i.to_row(&self.data).into());
 
