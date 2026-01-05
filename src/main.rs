@@ -4,7 +4,7 @@ use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
-use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox};
+use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox, text_input};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
 use chrono::{DateTime, Datelike,Timelike, Duration, Local, NaiveDate, NaiveTime, Weekday};
 //
@@ -121,11 +121,20 @@ struct CreateaUpdateDeleteEmpregado{
 impl Acontecimento for CreateaUpdateDeleteEmpregado{
     fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
-            text("CreateUpdateDeleteEmpregado"),
-            text("TODO!!!")
-        ]
+            if let Some(time) = self.date_time.time{
+                text(format!("{}", time.format("%H:%M:%S").to_string()))
+
+            }else{
+                text(format!("_indisponivel_"))
+            },
+            text("CRUD EMPREGADO"),
+            text(format!("OPERACAO: {}", &self.tipo_operacao)),
+            text(format!("EMPREGADO: {}", data.funcionarios.get(&self.cpf_empregado).unwrap())),
+            text(format!("CPF: {}", &self.cpf_empregado)),
+        ].spacing(20)
     }
 }
+
 struct SensivelREP{
     base: AFDBase,
     date_time: SelDate,
@@ -546,11 +555,13 @@ enum RHFiltro{
 }
 
 struct InterfaceRHFiltros{
+    busca_funcionario: String,
     ativos: HashSet<RHFiltro>
 }
 impl Default for InterfaceRHFiltros{
     fn default() -> Self{
         Self{
+            busca_funcionario: String::new(),
             ativos: HashSet::from([
                 RHFiltro::Cabecalho,
                 RHFiltro::CreateUpdateEmpresa,
@@ -909,11 +920,27 @@ impl InterfaceRH{
                 ].into()
             }
             Screen::Funcionarios =>{
+                let cabecalho = row![
+                    column![
+                        text("NOME").size(20),
+                    ].width(Fixed(150.0)).align_x(Center),
+                    column![
+                        text("CPF").size(20),
+                    ].width(Fixed(150.0)).align_x(Center),
+                    column![
+                        text("BANCO HORAS").size(20),
+                    ].width(Fixed(150.0)).align_x(Center),
+                    column![
+                        text("CONFIG").size(20),
+                    ].width(Fixed(150.0)).align_x(Center),
+                ].spacing(15);
                 column![
                     button("Voltar!")
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main))),
                     column![
-                        text("Bom dia!"),
+                        text_input("qual o nome do funcionario?", &self.filtros.busca_funcionario)
+                            .align_x(Center),
+                        cabecalho
                     ].width(Fill)
                         .height(Fill)
                         .align_x(Center)

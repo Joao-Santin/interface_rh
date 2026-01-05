@@ -1965,6 +1965,8 @@ dependencies = [
  "iced",
  "reqwest",
  "rfd",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
