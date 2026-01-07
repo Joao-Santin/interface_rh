@@ -594,11 +594,16 @@ enum Buttons{
     UpDownButton(i32, UpDownValue),
     SelDay(u32)
 }
+#[derive(Debug, Clone)]
+enum CampoInput{
+    FiltroFuncionario,
+}
 
 #[derive(Debug, Clone)]
 enum Message{
     ButtonPressed(Buttons),
     Toggle(RHFiltro, bool),
+    InputChanged(CampoInput, String)
 }
 
 impl Default for InterfaceRH{
@@ -785,6 +790,14 @@ impl InterfaceRH{
             Message::Toggle(filtro, false)=>{
                 self.filtros.ativos.remove(&filtro);
                 Command::none()
+            },
+            Message::InputChanged(campo, valor) =>{
+                match campo{
+                    CampoInput::FiltroFuncionario =>{
+                        self.filtros.busca_funcionario = valor;
+                        Command::none()
+                    },
+                }
             }
         }
     }
@@ -939,6 +952,7 @@ impl InterfaceRH{
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main))),
                     column![
                         text_input("qual o nome do funcionario?", &self.filtros.busca_funcionario)
+                            .on_input(|value| Message::InputChanged(CampoInput::FiltroFuncionario, value))
                             .align_x(Center),
                         cabecalho
                     ].width(Fill)
