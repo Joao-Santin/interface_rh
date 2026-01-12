@@ -40,7 +40,7 @@ struct Cabecalho{
     registro_hexa: String,
 }
 impl Acontecimento for Cabecalho{
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message> {
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message> {
         row![
             text("Cabecalho:: "),
             text(format!("Inicio: {}", self.data_inicio)),
@@ -61,7 +61,7 @@ struct CreateUpdateEmpresa{
     registro_hexa: String,
 }
 impl Acontecimento for CreateUpdateEmpresa{
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("CreateUpdateEmpresa"),
             text("TODO!!!")
@@ -76,7 +76,7 @@ struct MarcacaoPonto{
     registro_hexa: String,
 }
 impl Acontecimento for MarcacaoPonto{
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             if let Some(time) = self.date_time.time{
                 text(format!("{}", time.format("%H:%M:%S").to_string()))
@@ -99,7 +99,7 @@ struct AjusteRelogio{
 
 }
 impl Acontecimento for AjusteRelogio{
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("AjusteRelogio"),
             text("-"),
@@ -119,7 +119,7 @@ struct CreateaUpdateDeleteEmpregado{
     registro_hexa: String,
 }
 impl Acontecimento for CreateaUpdateDeleteEmpregado{
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             if let Some(time) = self.date_time.time{
                 text(format!("{}", time.format("%H:%M:%S").to_string()))
@@ -141,7 +141,7 @@ struct SensivelREP{
     evento: String,
 }
 impl Acontecimento for SensivelREP{
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>{
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>{
         row![
             text("SensivelREP"),
             text("TODO!!!")
@@ -503,7 +503,7 @@ impl fmt::Display for SelDate{
 }
 
 trait Acontecimento {
-    fn to_row(&self, data: &InterfaceRHData) -> Row<Message>;
+    fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>;
 }
 enum Periodo{
     Manha,
@@ -682,33 +682,64 @@ impl InterfaceRH{
         let dados: HashMap<String, String> = self.data.createupdatedeleteempregado.iter().map(|i| (i.cpf_empregado.clone(), i.nome_empregado.clone().trim().to_string())).collect();
         self.data.funcionarios = dados;
     }
+    fn get_row_funcionarios(&self) -> Column<Message>{
+        let rows_funcionarios: Vec<Element<Message>> = self.data.funcionarios
+            .iter()
+            .filter(|(_, v)| {
+                if self.filtros.busca_funcionario.trim() == "" {
+                true
+                }else{
+                    v.to_lowercase().contains(&self.filtros.busca_funcionario.to_lowercase())
+                }
+            })
+            .map(|(k, v)| {
+               row![
+                   column![
+                    text(v),
+                   ].width(Fixed(150.0)).align_x(Center),
+                   column![
+                    text(k)
+                   ].width(Fixed(150.0)).align_x(Center),
+                   column![
+                    text("*")
+                   ].width(Fixed(150.0)).align_x(Center),
+                   column![
+                    button("config")
+                   ].width(Fixed(150.0)).align_x(Center),
+            
+                ].spacing(15).into()
+            })
+            .collect();
+            
+        Column::with_children(rows_funcionarios)
+    }
     fn get_acontecimentos_by_day(&self)->Column<Message>{
 
         let row_createupdateempresa = self.data.createupdateempresa
             .iter()
             .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateEmpresa))
-            .map(|i| i.to_row(&self.data).into());
+            .map(|i| i.to_row_calendario(&self.data).into());
         let row_marcacaoponto = self.data.marcacaoponto
             .iter()
             .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::MarcacaoPonto))
-            .map(|i| i.to_row(&self.data).into());
+            .map(|i| i.to_row_calendario(&self.data).into());
         let row_ajusterelogio = self.data.ajusterelogio
             .iter()
             .filter(|i| i.date_time_ajustado.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::AjusteRelogio))
-            .map(|i| i.to_row(&self.data).into());
+            .map(|i| i.to_row_calendario(&self.data).into());
         let row_createupdatedeleteempregado = self.data.createupdatedeleteempregado
             .iter()
             .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::CreateUpdateDeleteEmpregado))
-            .map(|i| i.to_row(&self.data).into());
+            .map(|i| i.to_row_calendario(&self.data).into());
         let row_sensivelrep = self.data.sensivelrep
             .iter()
             .filter(|i| i.date_time.date() == self.sel_date.date())
             .filter(|_| self.filtros.ativos.contains(&RHFiltro::SensivelREP))
-            .map(|i| i.to_row(&self.data).into());
+            .map(|i| i.to_row_calendario(&self.data).into());
 
         let column = Column::with_children(row_createupdateempresa
             .chain(row_marcacaoponto)
@@ -947,6 +978,10 @@ impl InterfaceRH{
                         text("CONFIG").size(20),
                     ].width(Fixed(150.0)).align_x(Center),
                 ].spacing(15);
+                let mut funcionarios: Column<Message> = Column::new();
+                funcionarios = funcionarios.push(
+                    self.get_row_funcionarios()
+                );
                 column![
                     button("Voltar!")
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main))),
@@ -954,7 +989,8 @@ impl InterfaceRH{
                         text_input("qual o nome do funcionario?", &self.filtros.busca_funcionario)
                             .on_input(|value| Message::InputChanged(CampoInput::FiltroFuncionario, value))
                             .align_x(Center),
-                        cabecalho
+                        cabecalho,
+                        funcionarios
                     ].width(Fill)
                         .height(Fill)
                         .align_x(Center)
