@@ -12,7 +12,8 @@ use chrono::{DateTime, Datelike,Timelike, Duration, Local, NaiveDate, NaiveTime,
 enum Screen{
     Main,
     Calendar,
-    Funcionarios
+    Funcionarios,
+    InfoAddFuncionario(String),
     // LobbyColab,
 }
 // enum DecodeTypes{
@@ -704,7 +705,7 @@ impl InterfaceRH{
                     text("*")
                    ].width(Fixed(150.0)).align_x(Center),
                    column![
-                    button("config")
+                    button("config").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario("teste".to_string()))))
                    ].width(Fixed(150.0)).align_x(Center),
             
                 ].spacing(15).into()
@@ -775,7 +776,10 @@ impl InterfaceRH{
                             Screen::Calendar => {
                                 self.screen = Screen::Calendar
                             }
-                            Screen::Funcionarios => self.screen = Screen::Funcionarios
+                            Screen::Funcionarios => self.screen = Screen::Funcionarios,
+                            Screen::InfoAddFuncionario(cpf) => {
+                                self.screen = Screen::InfoAddFuncionario(cpf)
+                            }
                         }
                     }
                     Buttons::UpDownButton(delta, campo) => {
@@ -995,6 +999,29 @@ impl InterfaceRH{
                         .height(Fill)
                         .align_x(Center)
 
+                ].into()
+            },
+            Screen::InfoAddFuncionario(cpf) => {
+                column![
+                    row![
+                    text("INFO ADD FUNCIONARIO"),
+                    button("voltar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios)))
+                    ],
+                    row![
+                        text("Nome Corrigido:")
+                    ],
+                    row![
+                        text("Periodo:")
+                    ],
+                    row![
+                        text("Almoco:")
+                    ],
+                    row![
+                        text("Cargo:")
+                    ],
+                    row![
+                        text("Salario:")
+                    ],
                 ].into()
             }
 
