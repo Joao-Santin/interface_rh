@@ -2,11 +2,14 @@ use std::collections::{HashMap, HashSet};
 use std::usize;
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
+use std::fs::File;
+use std::io::{BufWriter, BufReader};
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
 use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox, text_input};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
 use chrono::{DateTime, Datelike,Timelike, Duration, Local, NaiveDate, NaiveTime, Weekday};
+use serde::{Deserialize, Serialize};
 //
 #[derive(Debug, Clone)]
 enum Screen{
@@ -506,11 +509,13 @@ impl fmt::Display for SelDate{
 trait Acontecimento {
     fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>;
 }
+#[derive(Debug, Serialize, Deserialize)]
 enum Periodo{
     Manha,
     Tarde,
     Noite,
 }
+#[derive(Debug, Serialize, Deserialize)]
 struct InfoAddFuncionario{
     nome_correcao: Option<String>,
     periodo: Periodo,
@@ -591,6 +596,7 @@ enum UpDownValue{
 #[derive(Debug, Clone)]
 enum Buttons{
     GetAFDFile,
+    GetInfoAdd,
     SwitchTo(Screen),
     UpDownButton(i32, UpDownValue),
     SelDay(u32)
@@ -620,6 +626,23 @@ impl Default for InterfaceRH{
 }
 
 impl InterfaceRH{
+    fn get_info_add_funcionarios(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let file = File::open("./data/infoaddfuncionarios.json")?;
+        let reader = BufReader::new(file);
+        let funcionarios = serde_json::from_reader(reader)?;
+        self.data.infoaddfuncionarios = funcionarios;
+        Ok(())
+
+    }
+    fn update_info_add_funcionarios(&mut self) -> Result<(), Box<dyn std::error::Error>>{
+        std::fs::create_dir_all("./data")?;
+        self.data.infoaddfuncionarios.insert("43953354892".to_string(), InfoAddFuncionario { nome_correcao: Some("João Rodrigues".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo: ("PCP".to_string()), salario: (6000.00) });
+        let file = File::create("./data/infoaddfuncionarios.json")?;
+        let writer = BufWriter::new(file);
+        serde_json::to_writer_pretty(writer, &self.data.infoaddfuncionarios)?;
+        Ok(())
+
+    }
     fn int_to_month_pt(mes_int: u8) -> Option<&'static str>{
         match mes_int{
             1=>Some("Janeiro"),
@@ -764,6 +787,7 @@ impl InterfaceRH{
                             InterfaceRH::decode_from_win1252_to_utf8(self, path);
                             let agora_local: DateTime<Local> = Local::now();
                             self.last_afd_got = Some(agora_local);
+                            self.get_info_add_funcionarios();
                             self.get_funcionarios();
 
                         } else {
@@ -815,6 +839,9 @@ impl InterfaceRH{
                         }
                         self.sel_date.weekday = self.sel_date.get_week_day();
 }
+                    Buttons::GetInfoAdd => {
+                        self.update_info_add_funcionarios();
+                    }
                 }
                 Command::none()
             },
@@ -1002,19 +1029,30 @@ impl InterfaceRH{
                 ].into()
             },
             Screen::InfoAddFuncionario(cpf) => {
+                //continuar aqui!!!
+                let funcionario = if let Some(func) = self.data.infoaddfuncionarios.get(cpf){
+                    func.salario
+                }else{
+                    0.0
+                };
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO"),
-                    button("voltar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios)))
+                    button("voltar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios))),
+                    button("pesquisar").on_press(Message::ButtonPressed(Buttons::GetInfoAdd))
                     ],
                     row![
-                        text("Nome Corrigido:")
+                        text("Nome Corrigido:"),
+                        text(format!("{}", funcionario))
+                        // text_input("nome corrigido")
                     ],
                     row![
-                        text("Periodo:")
+                        text("Periodo:"),
+                        // text_input("qual periodo")
                     ],
                     row![
-                        text("Almoco:")
+                        text("Almoco:"),
+                        // text_input("qual almoco")
                     ],
                     row![
                         text("Cargo:")
