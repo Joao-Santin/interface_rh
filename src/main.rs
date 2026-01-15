@@ -728,7 +728,7 @@ impl InterfaceRH{
                     text("*")
                    ].width(Fixed(150.0)).align_x(Center),
                    column![
-                    button("config").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario("teste".to_string()))))
+                    button("config").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario(k.to_string()))))
                    ].width(Fixed(150.0)).align_x(Center),
             
                 ].spacing(15).into()
@@ -840,7 +840,7 @@ impl InterfaceRH{
                         self.sel_date.weekday = self.sel_date.get_week_day();
 }
                     Buttons::GetInfoAdd => {
-                        self.update_info_add_funcionarios();
+                        self.get_info_add_funcionarios();
                     }
                 }
                 Command::none()
@@ -1030,11 +1030,12 @@ impl InterfaceRH{
             },
             Screen::InfoAddFuncionario(cpf) => {
                 //continuar aqui!!!
-                let funcionario = if let Some(func) = self.data.infoaddfuncionarios.get(cpf){
-                    func.salario
-                }else{
-                    0.0
-                };
+                let funcionario_name = self
+                    .data
+                    .infoaddfuncionarios
+                    .get(cpf)
+                    .and_then(|f| f.nome_correcao.as_deref())
+                    .unwrap_or("Não encontrado");
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO"),
@@ -1043,7 +1044,7 @@ impl InterfaceRH{
                     ],
                     row![
                         text("Nome Corrigido:"),
-                        text(format!("{}", funcionario))
+                        text(format!("{}", funcionario_name))
                         // text_input("nome corrigido")
                     ],
                     row![
