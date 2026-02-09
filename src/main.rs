@@ -1,7 +1,6 @@
-use std::collections::{HashMap, HashSet};
-use std::usize;
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufWriter, BufReader};
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
@@ -509,7 +508,7 @@ impl fmt::Display for SelDate{
 trait Acontecimento {
     fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>;
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 enum Periodo{
     Manha,
     Tarde,
@@ -597,13 +596,18 @@ enum UpDownValue{
 enum Buttons{
     GetAFDFile,
     GetInfoAdd,
+    UpdateInfoAdd,
     SwitchTo(Screen),
     UpDownButton(i32, UpDownValue),
-    SelDay(u32)
+    SelDay(u32),
+    SelPeriodo(String, Periodo),
 }
 #[derive(Debug, Clone)]
 enum CampoInput{
     FiltroFuncionario,
+    InfoAddFuncionarioName(String),
+    InfoAddFuncionarioAlmoco(String),
+    InfoAddFuncionarioCargo(String),
 }
 
 #[derive(Debug, Clone)]
@@ -636,12 +640,24 @@ impl InterfaceRH{
     }
     fn update_info_add_funcionarios(&mut self) -> Result<(), Box<dyn std::error::Error>>{
         std::fs::create_dir_all("./data")?;
-        self.data.infoaddfuncionarios.insert("43953354892".to_string(), InfoAddFuncionario { nome_correcao: Some("João Rodrigues".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo: ("PCP".to_string()), salario: (6000.00) });
         let file = File::create("./data/infoaddfuncionarios.json")?;
         let writer = BufWriter::new(file);
         serde_json::to_writer_pretty(writer, &self.data.infoaddfuncionarios)?;
         Ok(())
 
+    }
+    fn create_unadded_funcionario(&mut self) -> Result<(), Box<dyn std::error::Error>>{
+        for chave in self.data.funcionarios.keys(){
+            if self.data.infoaddfuncionarios.contains_key(chave){
+                println!("Possui a chave: {}", &chave)
+            }else{
+                self.data.infoaddfuncionarios.insert(chave.to_string(), InfoAddFuncionario{
+                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0)
+                });
+            }
+        }
+        self.update_info_add_funcionarios();
+        Ok(())
     }
     fn int_to_month_pt(mes_int: u8) -> Option<&'static str>{
         match mes_int{
@@ -789,6 +805,7 @@ impl InterfaceRH{
                             self.last_afd_got = Some(agora_local);
                             self.get_info_add_funcionarios();
                             self.get_funcionarios();
+                            self.create_unadded_funcionario();
 
                         } else {
                             println!("Nenhum arquivo selecionado.");
@@ -842,6 +859,14 @@ impl InterfaceRH{
                     Buttons::GetInfoAdd => {
                         self.get_info_add_funcionarios();
                     }
+                    Buttons::UpdateInfoAdd => {
+                        self.update_info_add_funcionarios();
+                    }
+                    Buttons::SelPeriodo(cpf, periodo) => {
+                        if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf){
+                            func.periodo = periodo;
+                        }
+                    }
                 }
                 Command::none()
             },
@@ -859,6 +884,26 @@ impl InterfaceRH{
                         self.filtros.busca_funcionario = valor;
                         Command::none()
                     },
+                    CampoInput::InfoAddFuncionarioName(cpf)=>{
+                        if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf) {
+                            func.nome_correcao = Some(valor);
+                        }
+                        Command::none()
+                    },
+                    CampoInput::InfoAddFuncionarioAlmoco(cpf)=>{
+                        if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf) {
+                            let s = valor.to_string();
+                            let n: u8 = s.parse().unwrap_or(0);
+                            func.almoco = n;
+                        }
+                        Command::none()
+                    },
+                    CampoInput::InfoAddFuncionarioCargo(cpf)=>{
+                        if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf){
+                            func.cargo = valor;
+                        }
+                        Command::none()
+                    }
                 }
             }
         }
@@ -1036,27 +1081,59 @@ impl InterfaceRH{
                     .get(cpf)
                     .and_then(|f| f.nome_correcao.as_deref())
                     .unwrap_or("Não encontrado");
+                let periodo_atual = self
+                    .data
+                    .infoaddfuncionarios
+                    .get(cpf)
+                    .map(|f| f.periodo)
+                    .unwrap();
+                let almoco = self
+                    .data
+                    .infoaddfuncionarios
+                    .get(cpf)
+                    .map(|f| f.almoco)
+                    .unwrap();
+                let cargo = self.data.infoaddfuncionarios.get(cpf).map(|f| f.cargo.clone()).unwrap();
+                let salario = self.data.infoaddfuncionarios.get(cpf).map(|f| f.salario).unwrap();
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO"),
                     button("voltar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios))),
-                    button("pesquisar").on_press(Message::ButtonPressed(Buttons::GetInfoAdd))
+                    button("UNDO").on_press(Message::ButtonPressed(Buttons::GetInfoAdd)),
+                    button("MUDAR").on_press(Message::ButtonPressed(Buttons::UpdateInfoAdd))
                     ],
                     row![
                         text("Nome Corrigido:"),
-                        text(format!("{}", funcionario_name))
-                        // text_input("nome corrigido")
+                        text_input("nome corrigido", funcionario_name)
+                            .on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioName(cpf.clone()), value))
                     ],
                     row![
                         text("Periodo:"),
+                        button(if periodo_atual == Periodo::Manha{
+                        "Manhã *"
+                    }else{
+                        "Manhã"
+                        }).on_press(Message::ButtonPressed(Buttons::SelPeriodo(cpf.clone(), Periodo::Manha))),
+                        button(if periodo_atual == Periodo::Tarde{
+                            "Tarde *"
+                        }else{
+                            "Tarde"
+                            }).on_press(Message::ButtonPressed(Buttons::SelPeriodo(cpf.clone(), Periodo::Tarde))),
+                        button(if periodo_atual == Periodo::Noite{
+                            "Noite*"
+                        }else{
+                            "Noite"
+                            }).on_press(Message::ButtonPressed(Buttons::SelPeriodo(cpf.clone(), Periodo::Noite))),
                         // text_input("qual periodo")
                     ],
                     row![
                         text("Almoco:"),
-                        // text_input("qual almoco")
+                        text_input("H inicio almoco", &almoco.to_string()).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioAlmoco(cpf.clone()), value))
                     ],
                     row![
-                        text("Cargo:")
+                        text("Cargo:"),
+                        text_input("Cargo", &almoco.to_string()).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCargo(cpf.clone()), value))
+
                     ],
                     row![
                         text("Salario:")
