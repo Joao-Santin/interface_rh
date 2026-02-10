@@ -1,13 +1,6 @@
 {
-  "42356258295": {
+  "98765432100": {
     "nome_correcao": "adicionar",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "",
-    "salario": 0.0
-  },
-  "00000000001": {
-    "nome_correcao": "adicionarrrrrrr",
     "periodo": "Manha",
     "almoco": 12,
     "cargo": "",
@@ -17,11 +10,11 @@
     "nome_correcao": "JOTINHA PÉ DE BREQUE!",
     "periodo": "Manha",
     "almoco": 12,
-    "cargo": "PCP",
+    "cargo": "PCC",
     "salario": 6000.0
   },
-  "98765432100": {
-    "nome_correcao": "adicionar",
+  "00000000001": {
+    "nome_correcao": "adicionarrrrrrr",
     "periodo": "Manha",
     "almoco": 12,
     "cargo": "",
@@ -33,5 +26,12 @@
     "almoco": 12,
     "cargo": "",
     "salario": 0.0
+  },
+  "42356258295": {
+    "nome_correcao": "Dedo medio apenas",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "Inspetor de qualidade",
+    "salario": 4000.0
   }
 }

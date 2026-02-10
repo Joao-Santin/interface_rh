@@ -7,7 +7,7 @@ use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
 use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox, text_input};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
-use chrono::{DateTime, Datelike,Timelike, Duration, Local, NaiveDate, NaiveTime, Weekday};
+use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday, Locale};
 use serde::{Deserialize, Serialize};
 //
 #[derive(Debug, Clone)]
@@ -551,6 +551,7 @@ impl Default for InterfaceRHData{
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum RHFiltro{
+    UseSelDate,//esse aqui é usado somente na seleção pessoal
     Cabecalho,
     CreateUpdateEmpresa,
     MarcacaoPonto,
@@ -561,13 +562,20 @@ enum RHFiltro{
 
 struct InterfaceRHFiltros{
     busca_funcionario: String,
+    sel_date_inicio: NaiveDateTime,
+    sel_date_fim: NaiveDateTime,
     ativos: HashSet<RHFiltro>
 }
 impl Default for InterfaceRHFiltros{
     fn default() -> Self{
+        let inicio: NaiveDateTime = Local::now().naive_local();
+        let fim: NaiveDateTime = Local::now().naive_local();
         Self{
             busca_funcionario: String::new(),
+            sel_date_inicio: inicio,
+            sel_date_fim: fim,
             ativos: HashSet::from([
+                RHFiltro::UseSelDate,
                 RHFiltro::Cabecalho,
                 RHFiltro::CreateUpdateEmpresa,
                 RHFiltro::MarcacaoPonto,
@@ -608,6 +616,7 @@ enum CampoInput{
     InfoAddFuncionarioName(String),
     InfoAddFuncionarioAlmoco(String),
     InfoAddFuncionarioCargo(String),
+    InfoAddFuncionarioSalario(String),
 }
 
 #[derive(Debug, Clone)]
@@ -752,6 +761,9 @@ impl InterfaceRH{
             .collect();
             
         Column::with_children(rows_funcionarios)
+    }
+    fn get_acontecimentos_funcionario(&self){
+        println!("Isso mesmo, XAMBAO");
     }
     fn get_acontecimentos_by_day(&self)->Column<Message>{
 
@@ -901,6 +913,14 @@ impl InterfaceRH{
                     CampoInput::InfoAddFuncionarioCargo(cpf)=>{
                         if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf){
                             func.cargo = valor;
+                        }
+                        Command::none()
+                    },
+                    CampoInput::InfoAddFuncionarioSalario(cpf)=>{
+                        if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf){
+                            let s= valor.to_string();
+                            let n: f32 = s.parse().unwrap_or(0.0);
+                            func.salario = n;
                         }
                         Command::none()
                     }
@@ -1097,15 +1117,20 @@ impl InterfaceRH{
                 let salario = self.data.infoaddfuncionarios.get(cpf).map(|f| f.salario).unwrap();
                 column![
                     row![
-                    text("INFO ADD FUNCIONARIO"),
-                    button("voltar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios))),
-                    button("UNDO").on_press(Message::ButtonPressed(Buttons::GetInfoAdd)),
-                    button("MUDAR").on_press(Message::ButtonPressed(Buttons::UpdateInfoAdd))
+                    text("INFO ADD FUNCIONARIO").size(20),
                     ],
+                    Space::with_height(10),
+                    row![
+                    button("<--").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios))),
+                    button("CANCELAR").on_press(Message::ButtonPressed(Buttons::GetInfoAdd)),
+                    button("ACEITAR").on_press(Message::ButtonPressed(Buttons::UpdateInfoAdd))
+                    ].spacing(5.0),
                     row![
                         text("Nome Corrigido:"),
                         text_input("nome corrigido", funcionario_name)
                             .on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioName(cpf.clone()), value))
+                            .size(20)
+                            .width(500)
                     ],
                     row![
                         text("Periodo:"),
@@ -1124,21 +1149,45 @@ impl InterfaceRH{
                         }else{
                             "Noite"
                             }).on_press(Message::ButtonPressed(Buttons::SelPeriodo(cpf.clone(), Periodo::Noite))),
-                        // text_input("qual periodo")
-                    ],
+                    ].spacing(5.0),
                     row![
                         text("Almoco:"),
                         text_input("H inicio almoco", &almoco.to_string()).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioAlmoco(cpf.clone()), value))
+                            .size(20)
+                            .width(500)
                     ],
                     row![
                         text("Cargo:"),
-                        text_input("Cargo", &almoco.to_string()).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCargo(cpf.clone()), value))
+                        text_input("Cargo", &cargo.to_string()).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCargo(cpf.clone()), value))
+                            .size(20)
+                            .width(500)
 
                     ],
                     row![
-                        text("Salario:")
+                        text("Salario:"),
+                        text_input("Salario", &salario.to_string()).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioSalario(cpf.clone()), value))
+                            .size(20)
+                            .width(500)
                     ],
-                ].into()
+                    row![
+                        text(format!("{}", self.filtros.sel_date_inicio.day())),
+                        text(format!("{}", self.filtros.sel_date_inicio.month())),
+                        text(format!("{}", self.filtros.sel_date_inicio.year())),
+                    ],
+                    row![
+                        text("Entrada"),
+                        text("S.Almoco"),
+                        text("V.Almoco"),
+                        text("Saida"),
+                        text("Ex.Entrada"),
+                        text("Ex.Saida"),
+                    ].spacing(30),
+                    scrollable(
+                        column![
+                            text("AQUI VAI TER O SCROLLABLE DOS DIAS")
+                        ]
+                    )
+                ].width(Fill).height(Fill).spacing(5).align_x(Center).into()
             }
 
         }
