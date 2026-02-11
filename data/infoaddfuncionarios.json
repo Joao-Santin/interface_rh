@@ -1,6 +1,13 @@
 {
-  "98765432100": {
-    "nome_correcao": "adicionar",
+  "12345678900": {
+    "nome_correcao": "TESTE ANELAR AQUI!",
+    "periodo": "Tarde",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0
+  },
+  "00000000001": {
+    "nome_correcao": "adicionarrrrrrr",
     "periodo": "Manha",
     "almoco": 12,
     "cargo": "",
@@ -13,19 +20,12 @@
     "cargo": "PCC",
     "salario": 6000.0
   },
-  "00000000001": {
-    "nome_correcao": "adicionarrrrrrr",
-    "periodo": "Manha",
+  "98765432100": {
+    "nome_correcao": "Coçador de pequenos espaços",
+    "periodo": "Noite",
     "almoco": 12,
-    "cargo": "",
-    "salario": 0.0
-  },
-  "12345678900": {
-    "nome_correcao": "TESTE ANELAR AQUI!",
-    "periodo": "Tarde",
-    "almoco": 12,
-    "cargo": "",
-    "salario": 0.0
+    "cargo": "Caçador de ourificios menores",
+    "salario": 1000000.0
   },
   "42356258295": {
     "nome_correcao": "Dedo medio apenas",

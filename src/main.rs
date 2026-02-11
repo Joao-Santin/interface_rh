@@ -14,9 +14,15 @@ use serde::{Deserialize, Serialize};
 enum Screen{
     Main,
     Calendar,
+    SelData(DataSelVar, String, NaiveDateTime),//qual data vai alterar, cpf de quem vai alterar, qual data entrou 
     Funcionarios,
     InfoAddFuncionario(String),
     // LobbyColab,
+}
+#[derive(Debug, Clone)]
+enum DataSelVar{
+    DataFiltroInicio,
+    DataFiltroFim
 }
 // enum DecodeTypes{
 //     WinUTF
@@ -829,6 +835,9 @@ impl InterfaceRH{
                             Screen::Calendar => {
                                 self.screen = Screen::Calendar
                             }
+                            Screen::SelData(dataselvar, cpf, hora_entrada) => {
+                                self.screen = Screen::SelData(dataselvar, cpf, hora_entrada)
+                            }
                             Screen::Funcionarios => self.screen = Screen::Funcionarios,
                             Screen::InfoAddFuncionario(cpf) => {
                                 self.screen = Screen::InfoAddFuncionario(cpf)
@@ -1170,9 +1179,13 @@ impl InterfaceRH{
                             .width(500)
                     ],
                     row![
-                        text(format!("{}", self.filtros.sel_date_inicio.day())),
-                        text(format!("{}", self.filtros.sel_date_inicio.month())),
-                        text(format!("{}", self.filtros.sel_date_inicio.year())),
+                        text("de"),
+                        Space::with_width(10),
+                        button(text(format!("{}-{}-{}", self.filtros.sel_date_inicio.day(), self.filtros.sel_date_inicio.month(), self.filtros.sel_date_inicio.year()))).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::SelData(DataSelVar::DataFiltroInicio, cpf.to_string(), self.filtros.sel_date_inicio)))),
+                        Space::with_width(10),
+                        text("até"),
+                        Space::with_width(10),
+                        button(text(format!("{}-{}-{}", self.filtros.sel_date_fim.day(), self.filtros.sel_date_fim.month(), self.filtros.sel_date_fim.year()))).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::SelData(DataSelVar::DataFiltroFim, cpf.to_string(), self.filtros.sel_date_fim)))),
                     ],
                     row![
                         text("Entrada"),
@@ -1188,6 +1201,32 @@ impl InterfaceRH{
                         ]
                     )
                 ].width(Fill).height(Fill).spacing(5).align_x(Center).into()
+            },
+            Screen::SelData(qualdata, cpf, data) => {
+                match qualdata{
+                    DataSelVar::DataFiltroInicio=> println!("INICIO"),
+                    DataSelVar::DataFiltroFim=> println!("FIM")
+
+                };
+
+
+                let mut dom: Column<Message> = column![text("Dom")].spacing(5).align_x(Center);
+                let mut seg: Column<Message> = column![text("Seg")].spacing(5).align_x(Center);
+                let mut ter: Column<Message> = column![text("Ter")].spacing(5).align_x(Center);
+                let mut qua: Column<Message> = column![text("Qua")].spacing(5).align_x(Center);
+                let mut qui: Column<Message> = column![text("Qui")].spacing(5).align_x(Center);
+                let mut sex: Column<Message> = column![text("Sex")].spacing(5).align_x(Center);
+                let mut sab: Column<Message> = column![text("Sab")].spacing(5).align_x(Center);
+
+                column![
+                    row![
+                        text("SELECIONAR DATA!"),
+                        button("Confirmar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario(cpf.to_string()))))
+                    ],
+                    
+                ].into()
+
+
             }
 
         }
