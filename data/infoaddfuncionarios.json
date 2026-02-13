@@ -1,18 +1,4 @@
 {
-  "12345678900": {
-    "nome_correcao": "TESTE ANELAR AQUI!",
-    "periodo": "Tarde",
-    "almoco": 12,
-    "cargo": "",
-    "salario": 0.0
-  },
-  "00000000001": {
-    "nome_correcao": "adicionarrrrrrr",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "",
-    "salario": 0.0
-  },
   "43953354892": {
     "nome_correcao": "JOTINHA PÉ DE BREQUE!",
     "periodo": "Manha",
@@ -27,11 +13,25 @@
     "cargo": "Caçador de ourificios menores",
     "salario": 1000000.0
   },
+  "12345678900": {
+    "nome_correcao": "TESTE ANELAR AQUI!",
+    "periodo": "Tarde",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0
+  },
   "42356258295": {
     "nome_correcao": "Dedo medio apenas",
     "periodo": "Manha",
     "almoco": 12,
     "cargo": "Inspetor de qualidade",
     "salario": 4000.0
+  },
+  "00000000001": {
+    "nome_correcao": "adicionarrrrrrr",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0
   }
 }

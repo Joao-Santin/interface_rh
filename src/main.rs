@@ -948,11 +948,11 @@ impl InterfaceRH{
                     }else{
                         text("PEGAR AFD!")
                     },
-                    button("GetAFDFile")
+                    button("PUXAR DADOS")
                         .on_press(Message::ButtonPressed(Buttons::GetAFDFile)),
-                    button("Calendario")
+                    button("ACONTECIMENTOS")
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Calendar))),
-                    button("Funcionarios")
+                    button("FUNCIONARIOS")
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios)))
                 ].width(Fill).height(Fill).align_x(Center).into()
             },
@@ -1217,6 +1217,56 @@ impl InterfaceRH{
                 let mut qui: Column<Message> = column![text("Qui")].spacing(5).align_x(Center);
                 let mut sex: Column<Message> = column![text("Sex")].spacing(5).align_x(Center);
                 let mut sab: Column<Message> = column![text("Sab")].spacing(5).align_x(Center);
+                let month = data.month();
+                let year = data.year();
+                let mut date = NaiveDate::from_ymd_opt(year, month, 1).expect("data invalida");
+                let mut days = Vec::new();
+                while date.month()== month{
+                    days.push((date.weekday(), date.day()));
+                    date += Duration::days(1);
+                }
+                let primeiro_dia_semana = days.first().map(|(weekday, _)| *weekday);
+                match primeiro_dia_semana{
+                        Some(Weekday::Sun) => (),
+                        Some(Weekday::Mon) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Tue) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))))
+                        },
+                        Some(Weekday::Wed) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Thu) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qua = qua.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Fri) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qua = qua.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qui = qui.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+                        Some(Weekday::Sat) => {
+                            dom = dom.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            seg = seg.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            ter = ter.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qua = qua.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            qui = qui.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                            sex = sex.push(button(text("")).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDay(0))));
+                        },
+
+                        None => println!("Não funcionou")
+                };
+                for (weekday, day) in days{
+                    let day_button = if self.filtros.se//continar aqui!!!
+                }
 
                 column![
                     row![
