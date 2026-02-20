@@ -615,6 +615,7 @@ enum Buttons{
     UpDownButton(i32, UpDownValue),
     SelDay(u32),
     SelPeriodo(String, Periodo),
+    SelDayInicioFim(DataSelVar, u32),
 }
 #[derive(Debug, Clone)]
 enum CampoInput{
@@ -876,7 +877,21 @@ impl InterfaceRH{
                             self.sel_date.day = dia as u8;
                         }
                         self.sel_date.weekday = self.sel_date.get_week_day();
-}
+                    }
+                    Buttons::SelDayInicioFim(sel_day, dia) => {
+                        match sel_day{
+                            DataSelVar::DataFiltroInicio =>{
+                                if dia>0{
+                                    self.filtros.sel_date_inicio = self.filtros.sel_date_inicio.with_day(dia).unwrap()
+                                }
+                            }
+                            DataSelVar::DataFiltroFim =>{
+                                if dia>0{
+                                self.filtros.sel_date_fim = self.filtros.sel_date_fim.with_day(dia).unwrap()
+                                }
+                            }
+                        }
+                    }
                     Buttons::GetInfoAdd => {
                         self.get_info_add_funcionarios();
                     }
@@ -1103,7 +1118,7 @@ impl InterfaceRH{
                 ].into()
             },
             Screen::InfoAddFuncionario(cpf) => {
-                //continuar aqui!!!
+                //marcador 1
                 let funcionario_name = self
                     .data
                     .infoaddfuncionarios
@@ -1203,12 +1218,6 @@ impl InterfaceRH{
                 ].width(Fill).height(Fill).spacing(5).align_x(Center).into()
             },
             Screen::SelData(qualdata, cpf, data) => {
-                match qualdata{
-                    DataSelVar::DataFiltroInicio=> println!("INICIO"),
-                    DataSelVar::DataFiltroFim=> println!("FIM")
-
-                };
-
 
                 let mut dom: Column<Message> = column![text("Dom")].spacing(5).align_x(Center);
                 let mut seg: Column<Message> = column![text("Seg")].spacing(5).align_x(Center);
@@ -1264,15 +1273,61 @@ impl InterfaceRH{
 
                         None => println!("Não funcionou")
                 };
+
                 for (weekday, day) in days{
-                    let day_button = if self.filtros.se//continar aqui!!!
-                }
+                    match qualdata{
+                        DataSelVar::DataFiltroInicio =>{
+                            let day_button: Element<Message> = if self.filtros.sel_date_inicio.day() == day{
+                                button(text(format!("{} *", day.to_string())).color(Color::from_rgb(1.0, 0.0, 0.0))).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDayInicioFim(qualdata.clone(), day))).into()
+                            }else{
+                                button(text(day.to_string())).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDayInicioFim(qualdata.clone(), day))).into()
+                            };
+                            match weekday {
+                                Weekday::Sun => dom = dom.push(day_button),
+                                Weekday::Mon => seg = seg.push(day_button),
+                                Weekday::Tue => ter = ter.push(day_button),
+                                Weekday::Wed => qua = qua.push(day_button),
+                                Weekday::Thu => qui = qui.push(day_button),
+                                Weekday::Fri => sex = sex.push(day_button),
+                                Weekday::Sat => sab = sab.push(day_button),
+                            }
+                        }
+                        DataSelVar::DataFiltroFim =>{
+                            let day_button:Element<Message> = if self.filtros.sel_date_fim.day() == day{
+                                button(text(format!("{} *", day.to_string())).color(Color::from_rgb(1.0, 0.0, 0.0))).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDayInicioFim(qualdata.clone(), day))).into()
+                            }else{
+                                button(text(day.to_string())).width(Fixed(60.0)).on_press(Message::ButtonPressed(Buttons::SelDayInicioFim(qualdata.clone(), day))).into()
+                            };
+                            match weekday {
+                                Weekday::Sun => dom = dom.push(day_button),
+                                Weekday::Mon => seg = seg.push(day_button),
+                                Weekday::Tue => ter = ter.push(day_button),
+                                Weekday::Wed => qua = qua.push(day_button),
+                                Weekday::Thu => qui = qui.push(day_button),
+                                Weekday::Fri => sex = sex.push(day_button),
+                                Weekday::Sat => sab = sab.push(day_button),
+                            }
+                        }
+
+                    }
+                };
 
                 column![
                     row![
-                        text("SELECIONAR DATA!"),
-                        button("Confirmar").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario(cpf.to_string()))))
+                        button("SELECIONAR DATA").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario(cpf.to_string()))))
                     ],
+                    row![
+
+                    ],
+                    row![
+                        dom,
+                        seg,
+                        ter,
+                        qua,
+                        qui,
+                        sex,
+                        sab,
+                    ].spacing(10)
                     
                 ].into()
 
