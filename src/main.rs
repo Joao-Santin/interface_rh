@@ -7,7 +7,7 @@ use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
 use iced::{Color, Element, Task as Command};
 use iced::widget::{button, column, container, row, scrollable, text, Column, Row, Space, Text, checkbox, text_input};
 use iced::{Alignment::{Center}, Length::{self, Fill, Fixed}};
-use chrono::{DateTime, Datelike, Duration, Local, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday, Locale};
+use chrono::{DateTime, Datelike, Duration, Local, Months, NaiveDate, NaiveDateTime, NaiveTime, Timelike, Weekday};
 use serde::{Deserialize, Serialize};
 //
 #[derive(Debug, Clone)]
@@ -23,6 +23,24 @@ enum Screen{
 enum DataSelVar{
     DataFiltroInicio,
     DataFiltroFim
+}
+trait WeekdayPtBr{
+    fn ptbr(&self) -> &'static str;
+}
+impl WeekdayPtBr for Weekday{
+    fn ptbr(&self) -> &'static str{
+        match self {
+            Weekday::Mon => "Segunda-feira",
+            Weekday::Tue => "Terça-feira",
+            Weekday::Wed => "Quarta-feita",
+            Weekday::Thu => "Quinta-feira",
+            Weekday::Fri => "Sexta-feira",
+            Weekday::Sat => "Sabado",
+            Weekday::Sun => "Domingo",
+
+        }
+    }
+    
 }
 // enum DecodeTypes{
 //     WinUTF
@@ -603,7 +621,11 @@ struct InterfaceRH{
 #[derive(Debug, Clone)]
 enum UpDownValue{
     Year,
+    YearFiltroInicio,
+    YearFiltroFim,
     Month,
+    MonthFiltroInicio,
+    MonthFiltroFim
 }
 
 #[derive(Debug, Clone)]
@@ -870,6 +892,26 @@ impl InterfaceRH{
                                 }
                                 self.sel_date.weekday = self.sel_date.get_week_day()
                             },
+                            UpDownValue::MonthFiltroFim => {
+                                if delta >= 0{
+                                    self.filtros.sel_date_fim = self.filtros.sel_date_fim + Months::new(delta as u32);
+                                }else{
+                                    self.filtros.sel_date_fim = self.filtros.sel_date_fim - Months::new((-delta) as u32)
+                                }
+                            }
+                            UpDownValue::MonthFiltroInicio => {
+                                if delta >= 0{
+                                    self.filtros.sel_date_inicio = self.filtros.sel_date_inicio + Months::new(delta as u32);
+                                }else{
+                                    self.filtros.sel_date_inicio = self.filtros.sel_date_inicio - Months::new((-delta) as u32)
+                                }
+                            }
+                            UpDownValue::YearFiltroFim => {
+                                self.filtros.sel_date_fim = self.filtros.sel_date_fim.with_year(self.filtros.sel_date_fim.year() + delta).unwrap();
+                            }
+                            UpDownValue::YearFiltroInicio => {
+                                self.filtros.sel_date_inicio = self.filtros.sel_date_inicio.with_year(self.filtros.sel_date_fim.year() + delta).unwrap();
+                            }
                         }
                     }
                     Buttons::SelDay(dia) => {
@@ -1106,12 +1148,15 @@ impl InterfaceRH{
                     button("Voltar!")
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main))),
                     column![
+                        text("FUNCIONARIOS").size(30.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
                         text_input("qual o nome do funcionario?", &self.filtros.busca_funcionario)
+                            .width(Fixed(650.0))
                             .on_input(|value| Message::InputChanged(CampoInput::FiltroFuncionario, value))
                             .align_x(Center),
                         cabecalho,
                         funcionarios
-                    ].width(Fill)
+                    ].spacing(10)
+                        .width(Fill)
                         .height(Fill)
                         .align_x(Center)
 
@@ -1226,8 +1271,16 @@ impl InterfaceRH{
                 let mut qui: Column<Message> = column![text("Qui")].spacing(5).align_x(Center);
                 let mut sex: Column<Message> = column![text("Sex")].spacing(5).align_x(Center);
                 let mut sab: Column<Message> = column![text("Sab")].spacing(5).align_x(Center);
-                let month = data.month();
-                let year = data.year();
+                let (month, year) = match qualdata {
+                    DataSelVar::DataFiltroInicio =>(
+                        self.filtros.sel_date_inicio.month(),
+                        self.filtros.sel_date_inicio.year(),
+                    ),
+                    DataSelVar::DataFiltroFim =>(
+                        self.filtros.sel_date_fim.month(),
+                        self.filtros.sel_date_fim.year(),
+                    )
+                };
                 let mut date = NaiveDate::from_ymd_opt(year, month, 1).expect("data invalida");
                 let mut days = Vec::new();
                 while date.month()== month{
@@ -1273,6 +1326,7 @@ impl InterfaceRH{
 
                         None => println!("Não funcionou")
                 };
+                let mut dia_semana = Weekday::Sun.ptbr();
 
                 for (weekday, day) in days{
                     match qualdata{
@@ -1291,6 +1345,7 @@ impl InterfaceRH{
                                 Weekday::Fri => sex = sex.push(day_button),
                                 Weekday::Sat => sab = sab.push(day_button),
                             }
+                            dia_semana = self.filtros.sel_date_inicio.weekday().ptbr();
                         }
                         DataSelVar::DataFiltroFim =>{
                             let day_button:Element<Message> = if self.filtros.sel_date_fim.day() == day{
@@ -1307,6 +1362,7 @@ impl InterfaceRH{
                                 Weekday::Fri => sex = sex.push(day_button),
                                 Weekday::Sat => sab = sab.push(day_button),
                             }
+                            dia_semana = self.filtros.sel_date_fim.weekday().ptbr();
                         }
 
                     }
@@ -1317,8 +1373,38 @@ impl InterfaceRH{
                         button("SELECIONAR DATA").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::InfoAddFuncionario(cpf.to_string()))))
                     ],
                     row![
-
-                    ],
+                        text(format!("{}, {}", dia_semana.to_string(),
+                        match qualdata{
+                                DataSelVar::DataFiltroInicio => self.filtros.sel_date_inicio.day(),
+                                DataSelVar::DataFiltroFim => self.filtros.sel_date_fim.day(),
+                            })),
+                        match qualdata{
+                            DataSelVar::DataFiltroInicio => button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::MonthFiltroInicio))),
+                            DataSelVar::DataFiltroFim => button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::MonthFiltroFim))),
+                        },
+                        text(format!("{}",
+                        match qualdata{
+                                DataSelVar::DataFiltroInicio => self.filtros.sel_date_inicio.month(),
+                                DataSelVar::DataFiltroFim => self.filtros.sel_date_fim.month(),
+                            })),
+                        match qualdata{
+                            DataSelVar::DataFiltroInicio => button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::MonthFiltroInicio))),
+                            DataSelVar::DataFiltroFim => button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::MonthFiltroFim)))
+                        },
+                        match qualdata{
+                                DataSelVar::DataFiltroInicio => button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::YearFiltroInicio))),
+                                DataSelVar::DataFiltroFim => button("<-").on_press(Message::ButtonPressed(Buttons::UpDownButton(-1, UpDownValue::YearFiltroFim))),
+                            },
+                        text(format!("{}",
+                            match qualdata{
+                                DataSelVar::DataFiltroInicio => self.filtros.sel_date_inicio.year(),
+                                DataSelVar::DataFiltroFim => self.filtros.sel_date_fim.year(),
+                            })),
+                        match qualdata{
+                                DataSelVar::DataFiltroInicio => button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::YearFiltroInicio))),
+                                DataSelVar::DataFiltroFim => button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::YearFiltroFim))),
+                        }
+                    ].spacing(18).align_y(Center),
                     row![
                         dom,
                         seg,
@@ -1329,7 +1415,7 @@ impl InterfaceRH{
                         sab,
                     ].spacing(10)
                     
-                ].into()
+                ].spacing(15).width(Fill).height(Fill).align_x(Center).into()
 
 
             }
