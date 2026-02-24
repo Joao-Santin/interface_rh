@@ -40,17 +40,28 @@ impl WeekdayPtBr for Weekday{
 
         }
     }
-    
 }
-// enum DecodeTypes{
-//     WinUTF
-// }
+trait MonthNamePtBr{
+    fn monthname_ptbr(&self) -> &'static str;
+}
+impl MonthNamePtBr for NaiveDateTime{
+    fn monthname_ptbr(&self) -> &'static str {
+        const MESES: [&str; 12] = [
+            "Janeiro", "Fevereiro", "Marco", "Abril",
+            "Maio", "Junho", "Julho", "Agosto",
+            "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+        MESES[(self.month()-1) as usize]
+    }
+}
+
 #[derive(Debug, Clone)]
 struct AFDBase{
     nsr: String,
     tipo: RegistryTypes
     
 }
+
 struct Cabecalho{
     base: AFDBase,
     tipo_empregador: String,
@@ -532,6 +543,9 @@ impl fmt::Display for SelDate{
 trait Acontecimento {
     fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>;
 }
+trait Apuracao {
+    fn to_row_apuracao_ponto(&self, cpf: String) -> Row<Message>;
+}
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 enum Periodo{
     Manha,
@@ -571,6 +585,14 @@ impl Default for InterfaceRHData{
             createupdatedeleteempregado: Vec::new(),
             sensivelrep: Vec::new()
         }
+    }
+}
+impl Apuracao for InterfaceRHData{
+    fn to_row_apuracao_ponto(&self, cpf:String) -> Row<Message> {
+        row![
+            text(format!("teste! cpf: {}", cpf)),
+        ]
+        
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -791,8 +813,8 @@ impl InterfaceRH{
             
         Column::with_children(rows_funcionarios)
     }
-    fn get_acontecimentos_funcionario(&self){
-        println!("Isso mesmo, XAMBAO");
+    fn get_acontecimentos_funcionario(&self, cpf_empregado: String){//cpf_empregado precisa ser cpf
+        self.data.to_row_apuracao_ponto(cpf_empregado);
     }
     fn get_acontecimentos_by_day(&self)->Column<Message>{
 
@@ -1005,7 +1027,7 @@ impl InterfaceRH{
                     }else{
                         text("PEGAR AFD!")
                     },
-                    button("PUXAR DADOS")
+                    button("BUSCAR DADOS")
                         .on_press(Message::ButtonPressed(Buttons::GetAFDFile)),
                     button("ACONTECIMENTOS")
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Calendar))),
@@ -1184,6 +1206,10 @@ impl InterfaceRH{
                     .unwrap();
                 let cargo = self.data.infoaddfuncionarios.get(cpf).map(|f| f.cargo.clone()).unwrap();
                 let salario = self.data.infoaddfuncionarios.get(cpf).map(|f| f.salario).unwrap();
+                let mut acontecimentos_funcionario: Column<Message> = column![
+                    text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
+                ];
+                self.get_acontecimentos_funcionario(cpf.to_string());
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO").size(20),
@@ -1256,9 +1282,7 @@ impl InterfaceRH{
                         text("Ex.Saida"),
                     ].spacing(30),
                     scrollable(
-                        column![
-                            text("AQUI VAI TER O SCROLLABLE DOS DIAS")
-                        ]
+                        acontecimentos_funcionario
                     )
                 ].width(Fill).height(Fill).spacing(5).align_x(Center).into()
             },
@@ -1384,8 +1408,8 @@ impl InterfaceRH{
                         },
                         text(format!("{}",
                         match qualdata{
-                                DataSelVar::DataFiltroInicio => self.filtros.sel_date_inicio.month(),
-                                DataSelVar::DataFiltroFim => self.filtros.sel_date_fim.month(),
+                                DataSelVar::DataFiltroInicio => self.filtros.sel_date_inicio.monthname_ptbr(),
+                                DataSelVar::DataFiltroFim => self.filtros.sel_date_fim.monthname_ptbr(),
                             })),
                         match qualdata{
                             DataSelVar::DataFiltroInicio => button("->").on_press(Message::ButtonPressed(Buttons::UpDownButton(1, UpDownValue::MonthFiltroInicio))),
