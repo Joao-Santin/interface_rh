@@ -1,6 +1,6 @@
 use std::{fs, fmt, path::PathBuf};
 use rfd::FileDialog;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, BTreeMap};
 use std::fs::File;
 use std::io::{BufWriter, BufReader};
 use encoding_rs::WINDOWS_1252; // ou ISO_8859_1, se preferir
@@ -490,6 +490,9 @@ impl Default for SelDate{
     }
 }
 impl SelDate{
+    fn to_naivedatetime(&self)->NaiveDateTime{
+        NaiveDateTime::new(self.date(), self.time.unwrap())
+    }
     fn date(&self)->NaiveDate{
         NaiveDate::from_ymd(self.year as i32, self.month as u32, self.day as u32)
     }
@@ -543,9 +546,6 @@ impl fmt::Display for SelDate{
 trait Acontecimento {
     fn to_row_calendario(&self, data: &InterfaceRHData) -> Row<Message>;
 }
-trait Apuracao {
-    fn to_row_apuracao_ponto(&self, cpf: String) -> Row<Message>;
-}
 #[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq)]
 enum Periodo{
     Manha,
@@ -558,7 +558,10 @@ struct InfoAddFuncionario{
     periodo: Periodo,
     almoco: u8,
     cargo: String,
-    salario: f32
+    salario: f32,
+    banco_horas_p_dia: HashMap<NaiveDate, i32>,
+    correcao_registro_ponto: HashMap<NaiveDateTime, NaiveDateTime>//primeiro é a data original,
+    //segundo é a correção feita
 }
 
 struct InterfaceRHData{
@@ -585,14 +588,6 @@ impl Default for InterfaceRHData{
             createupdatedeleteempregado: Vec::new(),
             sensivelrep: Vec::new()
         }
-    }
-}
-impl Apuracao for InterfaceRHData{
-    fn to_row_apuracao_ponto(&self, cpf:String) -> Row<Message> {
-        row![
-            text(format!("teste! cpf: {}", cpf)),
-        ]
-        
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -712,7 +707,7 @@ impl InterfaceRH{
                 println!("Possui a chave: {}", &chave)
             }else{
                 self.data.infoaddfuncionarios.insert(chave.to_string(), InfoAddFuncionario{
-                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0)
+                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0), banco_horas_p_dia: HashMap::new(), correcao_registro_ponto: HashMap::new()
                 });
             }
         }
@@ -813,11 +808,37 @@ impl InterfaceRH{
             
         Column::with_children(rows_funcionarios)
     }
-    fn get_acontecimentos_funcionario(&self, cpf_empregado: String){//cpf_empregado precisa ser cpf
-        self.data.to_row_apuracao_ponto(cpf_empregado);
+    fn get_registro_ponto_funcionario(&self, cpf_empregado: String)-> Column<Message>{//cpf_empregado precisa ser cpf
+        let periodo_busca = self.filtros.sel_date_inicio..=self.filtros.sel_date_fim;
+        let mut agrupado: BTreeMap<chrono::NaiveDate, Vec<&MarcacaoPonto>> = BTreeMap::new();
+        for ponto in self.data.marcacaoponto
+            .iter()
+            .filter(|i| periodo_busca.contains(&i.date_time.to_naivedatetime()))
+            .filter(|i| i.cpf_empregado == cpf_empregado)
+            {
+            let data = ponto.date_time.to_naivedatetime().date();
+            agrupado
+                .entry(data)
+                .or_default()
+                .push(ponto);
+        }
+        let mut rows: Vec<Row<Message>> = Vec::new();
+        for (data, pontos) in &agrupado{
+            let mut one_row: Row<Message> = Row::new();
+            one_row = one_row.push(text(data.format("%d/%m/%Y").to_string()));
+            for ponto in pontos{
+                one_row = one_row.push(text(ponto.date_time.to_naivedatetime().time().format("%H:%M").to_string()));
+            };
+            rows.push((one_row).spacing(10).into());
+        }
+        
+        let column = Column::with_children(
+            rows.into_iter().map(Element::from).collect::<Vec<Element<Message>>>()
+        ).spacing(5);
+
+        column
     }
     fn get_acontecimentos_by_day(&self)->Column<Message>{
-
         let row_createupdateempresa = self.data.createupdateempresa
             .iter()
             .filter(|i| i.date_time.date() == self.sel_date.date())
@@ -1171,6 +1192,7 @@ impl InterfaceRH{
                         .on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Main))),
                     column![
                         text("FUNCIONARIOS").size(30.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
+                        button("Apurar Banco Horas"),
                         text_input("qual o nome do funcionario?", &self.filtros.busca_funcionario)
                             .width(Fixed(650.0))
                             .on_input(|value| Message::InputChanged(CampoInput::FiltroFuncionario, value))
@@ -1209,7 +1231,7 @@ impl InterfaceRH{
                 let mut acontecimentos_funcionario: Column<Message> = column![
                     text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
                 ];
-                self.get_acontecimentos_funcionario(cpf.to_string());
+                acontecimentos_funcionario = acontecimentos_funcionario.push(self.get_registro_ponto_funcionario(cpf.to_string()));
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO").size(20),
@@ -1440,21 +1462,13 @@ impl InterfaceRH{
                     ].spacing(10)
                     
                 ].spacing(15).width(Fill).height(Fill).align_x(Center).into()
-
-
             }
-
         }
     }
-
 }
-
-
 fn main() -> iced::Result{
     dotenv::dotenv().ok();
     iced::application("Interface RH", InterfaceRH::update, InterfaceRH::view)
         .window_size((1000.0, 600.0))
         .run()
 }
-// fn main() {
-// }

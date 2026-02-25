@@ -1,37 +1,47 @@
 {
-  "98765432100": {
-    "nome_correcao": "Coçador de pequenos espaços",
-    "periodo": "Noite",
-    "almoco": 12,
-    "cargo": "Caçador de ourificios menores",
-    "salario": 1000000.0
-  },
-  "42356258295": {
-    "nome_correcao": "Dedo medio apenas",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "Inspetor de qualidade",
-    "salario": 4000.0
-  },
   "43953354892": {
-    "nome_correcao": "Joao Vitor Santin Rodrigues",
+    "nome_correcao": "adicionar",
     "periodo": "Manha",
     "almoco": 12,
-    "cargo": "PPCP",
-    "salario": 6000.0
+    "cargo": "",
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
+  },
+  "98765432100": {
+    "nome_correcao": "adicionar",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
   },
   "00000000001": {
-    "nome_correcao": "adicionarrrrrrr",
-    "periodo": "Tarde",
+    "nome_correcao": "adicionar",
+    "periodo": "Manha",
     "almoco": 12,
     "cargo": "",
-    "salario": 0.0
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
+  },
+  "42356258295": {
+    "nome_correcao": "adicionar",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
   },
   "12345678900": {
-    "nome_correcao": "TESTE ANELAR AQUI!",
-    "periodo": "Tarde",
+    "nome_correcao": "ANELAR",
+    "periodo": "Manha",
     "almoco": 12,
-    "cargo": "",
-    "salario": 0.0
+    "cargo": "carregador de aliancas",
+    "salario": 2000.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
   }
 }
