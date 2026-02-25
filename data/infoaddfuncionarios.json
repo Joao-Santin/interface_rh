@@ -8,6 +8,24 @@
     "banco_horas_p_dia": {},
     "correcao_registro_ponto": {}
   },
+  "12345678900": {
+    "nome_correcao": "ANELAR",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "carregador de aliancas",
+    "salario": 2000.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
+  },
+  "42356258295": {
+    "nome_correcao": "adicionar",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {}
+  },
   "98765432100": {
     "nome_correcao": "adicionar",
     "periodo": "Manha",
@@ -23,24 +41,6 @@
     "almoco": 12,
     "cargo": "",
     "salario": 0.0,
-    "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
-  },
-  "42356258295": {
-    "nome_correcao": "adicionar",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "",
-    "salario": 0.0,
-    "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
-  },
-  "12345678900": {
-    "nome_correcao": "ANELAR",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "carregador de aliancas",
-    "salario": 2000.0,
     "banco_horas_p_dia": {},
     "correcao_registro_ponto": {}
   }

@@ -808,6 +808,15 @@ impl InterfaceRH{
             
         Column::with_children(rows_funcionarios)
     }
+    fn apuracao_registro_ponto_todos_funcionarios(&self){
+        for (cpf, dados) in self.data.infoaddfuncionarios.iter(){
+            //continuar aqui!! é necessario fazer agora a apuracao, buscar todos os
+            //dias que cada funcionario trabalhou e criar o campo editavel no
+            //self.data.infoaddfuncionarios.correcao_registro_ponto e no campo banco_horas_p_dia
+            //criar qual o delta de horas do funcionario. Buscando logica de 10 minutos de atraso,
+            //correcoes registrada etc.
+        }
+    }
     fn get_registro_ponto_funcionario(&self, cpf_empregado: String)-> Column<Message>{//cpf_empregado precisa ser cpf
         let periodo_busca = self.filtros.sel_date_inicio..=self.filtros.sel_date_fim;
         let mut agrupado: BTreeMap<chrono::NaiveDate, Vec<&MarcacaoPonto>> = BTreeMap::new();
@@ -828,6 +837,14 @@ impl InterfaceRH{
             one_row = one_row.push(text(data.format("%d/%m/%Y").to_string()));
             for ponto in pontos{
                 one_row = one_row.push(text(ponto.date_time.to_naivedatetime().time().format("%H:%M").to_string()));
+                if let Some(func) = self.data.infoaddfuncionarios.get(&cpf_empregado){
+                    if let Some(correcao) = func.correcao_registro_ponto.get(&ponto.date_time.to_naivedatetime()){
+                        let correcao_corrigido = correcao.format("%H:%M").to_string();
+                        one_row = one_row.push(text_input("c.", &correcao_corrigido))
+                    }else{
+                        one_row = one_row.push(text_input("c.", "a").width(Fixed(50.0)))
+                    }
+                }
             };
             rows.push((one_row).spacing(10).into());
         }
@@ -889,6 +906,7 @@ impl InterfaceRH{
                             self.last_afd_got = Some(agora_local);
                             self.get_info_add_funcionarios();
                             self.get_funcionarios();
+                            self.apuracao_registro_ponto_todos_funcionarios();
                             self.create_unadded_funcionario();
 
                         } else {
