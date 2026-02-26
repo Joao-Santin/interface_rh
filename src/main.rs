@@ -560,7 +560,8 @@ struct InfoAddFuncionario{
     cargo: String,
     salario: f32,
     banco_horas_p_dia: HashMap<NaiveDate, i32>,
-    correcao_registro_ponto: HashMap<NaiveDateTime, NaiveDateTime>//primeiro é a data original,
+    correcao_registro_ponto: HashMap<NaiveDateTime, Option<NaiveDateTime>>,//primeiro é a data original,
+    correcao_registro_ponto_str: HashMap<NaiveDateTime, String>
     //segundo é a correção feita
 }
 
@@ -659,10 +660,11 @@ enum Buttons{
 #[derive(Debug, Clone)]
 enum CampoInput{
     FiltroFuncionario,
-    InfoAddFuncionarioName(String),
-    InfoAddFuncionarioAlmoco(String),
-    InfoAddFuncionarioCargo(String),
-    InfoAddFuncionarioSalario(String),
+    InfoAddFuncionarioName(String),//cpf
+    InfoAddFuncionarioAlmoco(String),//cpf
+    InfoAddFuncionarioCargo(String),//cpf
+    InfoAddFuncionarioSalario(String),//cpf
+    InfoAddFuncionarioCorrecaoPonto(String, NaiveDateTime),//cpf, index(0 à 6 que pode ir)
 }
 
 #[derive(Debug, Clone)]
@@ -707,7 +709,7 @@ impl InterfaceRH{
                 println!("Possui a chave: {}", &chave)
             }else{
                 self.data.infoaddfuncionarios.insert(chave.to_string(), InfoAddFuncionario{
-                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0), banco_horas_p_dia: HashMap::new(), correcao_registro_ponto: HashMap::new()
+                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0), banco_horas_p_dia: HashMap::new(), correcao_registro_ponto: HashMap::new(), correcao_registro_ponto_str: HashMap::new()
                 });
             }
         }
@@ -808,14 +810,30 @@ impl InterfaceRH{
             
         Column::with_children(rows_funcionarios)
     }
-    fn apuracao_registro_ponto_todos_funcionarios(&self){
-        for (cpf, dados) in self.data.infoaddfuncionarios.iter(){
-            //continuar aqui!! é necessario fazer agora a apuracao, buscar todos os
+    fn apuracao_registro_ponto_todos_funcionarios(&mut self){
+        for (cpf, dados) in self.data.infoaddfuncionarios.iter_mut(){
+            let pontos: Vec<&MarcacaoPonto> = self.data.marcacaoponto
+                .iter()
+                .filter(|i| i.cpf_empregado == *cpf)
+                .collect();
+            for ponto in pontos{
+                let dt = ponto.date_time.to_naivedatetime();
+                if dados.correcao_registro_ponto.contains_key(&dt){
+                    println!("Já temos:{}", &ponto.date_time.to_naivedatetime().to_string())
+                }else{
+                    dados.correcao_registro_ponto.insert(dt, None);
+                    dados.correcao_registro_ponto_str.insert(dt, "".to_string());
+                };
+
+            }
+
+            //continuar aqui!!! é necessario fazer agora a apuracao, buscar todos os
             //dias que cada funcionario trabalhou e criar o campo editavel no
             //self.data.infoaddfuncionarios.correcao_registro_ponto e no campo banco_horas_p_dia
             //criar qual o delta de horas do funcionario. Buscando logica de 10 minutos de atraso,
             //correcoes registrada etc.
-        }
+        };
+        self.update_info_add_funcionarios();
     }
     fn get_registro_ponto_funcionario(&self, cpf_empregado: String)-> Column<Message>{//cpf_empregado precisa ser cpf
         let periodo_busca = self.filtros.sel_date_inicio..=self.filtros.sel_date_fim;
@@ -834,16 +852,34 @@ impl InterfaceRH{
         let mut rows: Vec<Row<Message>> = Vec::new();
         for (data, pontos) in &agrupado{
             let mut one_row: Row<Message> = Row::new();
-            one_row = one_row.push(text(data.format("%d/%m/%Y").to_string()));
-            for ponto in pontos{
-                one_row = one_row.push(text(ponto.date_time.to_naivedatetime().time().format("%H:%M").to_string()));
+            one_row = one_row.push(text(data.format("%d/%m/%Y").to_string()).width(Fixed(90.0)));
+            for i in 0..6{
+                if let Some(ponto) = pontos.get(i){
+                    let horario = ponto
+                        .date_time
+                        .to_naivedatetime()
+                        .time()
+                        .format("%H:%M")
+                        .to_string();
+
+                    let naivedatetime = ponto.date_time.to_naivedatetime();
+                    one_row = one_row.push(text(horario).width(Fixed(50.0)).color(Color::from_rgb(0.5, 0.5, 0.5)));
                 if let Some(func) = self.data.infoaddfuncionarios.get(&cpf_empregado){
-                    if let Some(correcao) = func.correcao_registro_ponto.get(&ponto.date_time.to_naivedatetime()){
-                        let correcao_corrigido = correcao.format("%H:%M").to_string();
-                        one_row = one_row.push(text_input("c.", &correcao_corrigido))
+                    if let Some(correcao) = func.correcao_registro_ponto_str.get(&ponto.date_time.to_naivedatetime()){
+
+                        let cpf_clone = cpf_empregado.clone();
+                        one_row = one_row.push(text_input("c.1", &correcao).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf_clone.clone(), naivedatetime), value)).width(Fixed(60.0)))
                     }else{
-                        one_row = one_row.push(text_input("c.", "a").width(Fixed(50.0)))
+                        let cpf_clone = cpf_empregado.clone();
+                        one_row = one_row.push(text_input("c.2", "").width(Fixed(50.0)).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf_clone.clone(), naivedatetime), value)).width(Fixed(60.0)))
                     }
+                }
+                }else{
+                    one_row = one_row.push(text("-").width(Fixed(50.0)));
+                    one_row = one_row.push(
+                        text_input("c.3", "")
+                            .width(Fixed(60.0))
+                    )
                 }
             };
             rows.push((one_row).spacing(10).into());
@@ -851,7 +887,7 @@ impl InterfaceRH{
         
         let column = Column::with_children(
             rows.into_iter().map(Element::from).collect::<Vec<Element<Message>>>()
-        ).spacing(5);
+        ).spacing(5).width(Fill).align_x(Center);
 
         column
     }
@@ -1050,6 +1086,12 @@ impl InterfaceRH{
                             func.salario = n;
                         }
                         Command::none()
+                    },
+                    CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf, naivedatetime)=>{
+                        if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf){
+                            func.correcao_registro_ponto_str.insert(naivedatetime, valor);
+                            }
+                        Command::none()
                     }
                 }
             }
@@ -1247,14 +1289,17 @@ impl InterfaceRH{
                 let cargo = self.data.infoaddfuncionarios.get(cpf).map(|f| f.cargo.clone()).unwrap();
                 let salario = self.data.infoaddfuncionarios.get(cpf).map(|f| f.salario).unwrap();
                 let mut acontecimentos_funcionario: Column<Message> = column![
-                    text("ACONTECIMENTOS").size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
+                    text("ACONTECIMENTOS").width(Fill).align_x(Center).size(25.0).color(Color::from_rgb(0.5, 0.5, 0.5)),
+                    Space::with_width(20.0),
+                    column![
+                    ].width(Fill).align_x(Center)
                 ];
                 acontecimentos_funcionario = acontecimentos_funcionario.push(self.get_registro_ponto_funcionario(cpf.to_string()));
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO").size(20),
                     ],
-                    Space::with_height(10),
+                    Space::with_height(20),
                     row![
                     button("<--").on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::Funcionarios))),
                     button("CANCELAR").on_press(Message::ButtonPressed(Buttons::GetInfoAdd)),
@@ -1313,14 +1358,7 @@ impl InterfaceRH{
                         Space::with_width(10),
                         button(text(format!("{}-{}-{}", self.filtros.sel_date_fim.day(), self.filtros.sel_date_fim.month(), self.filtros.sel_date_fim.year()))).on_press(Message::ButtonPressed(Buttons::SwitchTo(Screen::SelData(DataSelVar::DataFiltroFim, cpf.to_string(), self.filtros.sel_date_fim)))),
                     ],
-                    row![
-                        text("Entrada"),
-                        text("S.Almoco"),
-                        text("V.Almoco"),
-                        text("Saida"),
-                        text("Ex.Entrada"),
-                        text("Ex.Saida"),
-                    ].spacing(30),
+                    Space::with_width(20),
                     scrollable(
                         acontecimentos_funcionario
                     )

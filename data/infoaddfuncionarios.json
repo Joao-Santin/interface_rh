@@ -1,22 +1,4 @@
 {
-  "43953354892": {
-    "nome_correcao": "adicionar",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "",
-    "salario": 0.0,
-    "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
-  },
-  "12345678900": {
-    "nome_correcao": "ANELAR",
-    "periodo": "Manha",
-    "almoco": 12,
-    "cargo": "carregador de aliancas",
-    "salario": 2000.0,
-    "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
-  },
   "42356258295": {
     "nome_correcao": "adicionar",
     "periodo": "Manha",
@@ -24,16 +6,32 @@
     "cargo": "",
     "salario": 0.0,
     "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
+    "correcao_registro_ponto": {
+      "2025-10-27T09:49:00": null,
+      "2025-10-28T10:42:00": null,
+      "2025-10-27T09:44:00": null
+    },
+    "correcao_registro_ponto_str": {
+      "2025-10-27T09:44:00": "",
+      "2025-10-28T10:42:00": "",
+      "2025-10-27T09:49:00": ""
+    }
   },
-  "98765432100": {
+  "12345678900": {
     "nome_correcao": "adicionar",
     "periodo": "Manha",
     "almoco": 12,
     "cargo": "",
     "salario": 0.0,
     "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
+    "correcao_registro_ponto": {
+      "2025-10-27T09:49:00": null,
+      "2025-10-28T10:42:00": null
+    },
+    "correcao_registro_ponto_str": {
+      "2025-10-27T09:49:00": "",
+      "2025-10-28T10:42:00": ""
+    }
   },
   "00000000001": {
     "nome_correcao": "adicionar",
@@ -42,6 +40,65 @@
     "cargo": "",
     "salario": 0.0,
     "banco_horas_p_dia": {},
-    "correcao_registro_ponto": {}
+    "correcao_registro_ponto": {
+      "2025-10-09T10:18:00": null,
+      "2025-10-27T09:39:00": null,
+      "2025-10-14T08:32:00": null,
+      "2025-09-15T14:41:00": null,
+      "2025-10-27T09:48:00": null
+    },
+    "correcao_registro_ponto_str": {
+      "2025-10-27T09:48:00": "",
+      "2025-10-14T08:32:00": "",
+      "2025-10-27T09:39:00": "",
+      "2025-10-09T10:18:00": "",
+      "2025-09-15T14:41:00": ""
+    }
+  },
+  "98765432100": {
+    "nome_correcao": "adicionar",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {
+      "2025-10-27T09:50:00": null,
+      "2025-10-28T10:42:00": null
+    },
+    "correcao_registro_ponto_str": {
+      "2025-10-28T10:42:00": "",
+      "2025-10-27T09:50:00": ""
+    }
+  },
+  "43953354892": {
+    "nome_correcao": "Joao",
+    "periodo": "Manha",
+    "almoco": 12,
+    "cargo": "",
+    "salario": 0.0,
+    "banco_horas_p_dia": {},
+    "correcao_registro_ponto": {
+      "2025-10-27T09:40:00": null,
+      "2025-10-14T08:32:00": null,
+      "2025-10-24T09:56:00": null,
+      "2025-10-27T09:48:00": null,
+      "2025-09-12T16:02:00": null,
+      "2025-10-28T10:42:00": null,
+      "2025-09-15T14:42:00": null,
+      "2025-10-09T10:18:00": null,
+      "2025-09-12T15:42:00": null
+    },
+    "correcao_registro_ponto_str": {
+      "2025-09-15T14:42:00": "",
+      "2025-10-09T10:18:00": "",
+      "2025-09-12T16:02:00": "16:00",
+      "2025-10-14T08:32:00": "",
+      "2025-10-27T09:48:00": "",
+      "2025-09-12T15:42:00": "15:45",
+      "2025-10-24T09:56:00": "",
+      "2025-10-28T10:42:00": "",
+      "2025-10-27T09:40:00": ""
+    }
   }
 }
