@@ -696,12 +696,25 @@ impl InterfaceRH{
 
     }
     fn update_info_add_funcionarios(&mut self) -> Result<(), Box<dyn std::error::Error>>{
+        println!("fazendo update");
+        for (_, data) in self.data.infoaddfuncionarios.iter_mut(){
+            println!("iter infoaddfuncionarios: cargo:{}", data.cargo);
+            for (chave, ponto_str) in data.correcao_registro_ponto_str.iter(){
+                println!("iter registro_ponto: chave:{}, ponto:{}", chave, ponto_str);
+                if let Some(corrigir_opt) = data.correcao_registro_ponto.get_mut(chave){
+                    let date_time_str = format!("{}T{}", chave.date(), ponto_str);
+                    if let Ok(novo_datetime) = chrono::NaiveDateTime::parse_from_str(&date_time_str, "%Y-%m-%dT%H:%M"){
+                        *corrigir_opt = Some(novo_datetime)
+                    }
+                }
+            }
+        }
+
         std::fs::create_dir_all("./data")?;
         let file = File::create("./data/infoaddfuncionarios.json")?;
         let writer = BufWriter::new(file);
         serde_json::to_writer_pretty(writer, &self.data.infoaddfuncionarios)?;
         Ok(())
-
     }
     fn create_unadded_funcionario(&mut self) -> Result<(), Box<dyn std::error::Error>>{
         for chave in self.data.funcionarios.keys(){
@@ -824,7 +837,6 @@ impl InterfaceRH{
                     dados.correcao_registro_ponto.insert(dt, None);
                     dados.correcao_registro_ponto_str.insert(dt, "".to_string());
                 };
-
             }
 
             //continuar aqui!!! é necessario fazer agora a apuracao, buscar todos os
@@ -868,16 +880,26 @@ impl InterfaceRH{
                     if let Some(correcao) = func.correcao_registro_ponto_str.get(&ponto.date_time.to_naivedatetime()){
 
                         let cpf_clone = cpf_empregado.clone();
-                        one_row = one_row.push(text_input("c.1", &correcao).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf_clone.clone(), naivedatetime), value)).width(Fixed(60.0)))
+                        let date_time_str = format!("{}T{}", ponto.date_time.to_naivedatetime().date().to_string(), correcao);
+                        let is_valido = chrono::NaiveDateTime::parse_from_str(&date_time_str, "%Y-%m-%dT%H:%M").is_ok();
+                        one_row = one_row.push(text_input("1__:__", &correcao).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf_clone.clone(), naivedatetime), value)).width(Fixed(60.0)).style(move|theme, status|{
+                                let mut style = text_input::default(theme, status);
+                                style.value = if is_valido {
+                                    Color::from_rgb(0.0, 0.7, 0.0) // verde
+                                }else{
+                                    Color::from_rgb(0.8,0.0,0.0)//vermelho
+                                };
+                                style
+                            }))
                     }else{
                         let cpf_clone = cpf_empregado.clone();
-                        one_row = one_row.push(text_input("c.2", "").width(Fixed(50.0)).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf_clone.clone(), naivedatetime), value)).width(Fixed(60.0)))
+                        one_row = one_row.push(text_input("2__:__", "").width(Fixed(50.0)).on_input(move |value| Message::InputChanged(CampoInput::InfoAddFuncionarioCorrecaoPonto(cpf_clone.clone(), naivedatetime), value)).width(Fixed(60.0)))
                     }
                 }
                 }else{
                     one_row = one_row.push(text("-").width(Fixed(50.0)));
                     one_row = one_row.push(
-                        text_input("c.3", "")
+                        text_input("3__:__", "")
                             .width(Fixed(60.0))
                     )
                 }
