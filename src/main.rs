@@ -696,11 +696,8 @@ impl InterfaceRH{
 
     }
     fn update_info_add_funcionarios(&mut self) -> Result<(), Box<dyn std::error::Error>>{
-        println!("fazendo update");
         for (_, data) in self.data.infoaddfuncionarios.iter_mut(){
-            println!("iter infoaddfuncionarios: cargo:{}", data.cargo);
             for (chave, ponto_str) in data.correcao_registro_ponto_str.iter(){
-                println!("iter registro_ponto: chave:{}, ponto:{}", chave, ponto_str);
                 if let Some(corrigir_opt) = data.correcao_registro_ponto.get_mut(chave){
                     let date_time_str = format!("{}T{}", chave.date(), ponto_str);
                     if let Ok(novo_datetime) = chrono::NaiveDateTime::parse_from_str(&date_time_str, "%Y-%m-%dT%H:%M"){
@@ -838,12 +835,6 @@ impl InterfaceRH{
                     dados.correcao_registro_ponto_str.insert(dt, "".to_string());
                 };
             }
-
-            //continuar aqui!!! é necessario fazer agora a apuracao, buscar todos os
-            //dias que cada funcionario trabalhou e criar o campo editavel no
-            //self.data.infoaddfuncionarios.correcao_registro_ponto e no campo banco_horas_p_dia
-            //criar qual o delta de horas do funcionario. Buscando logica de 10 minutos de atraso,
-            //correcoes registrada etc.
         };
         self.update_info_add_funcionarios();
     }
@@ -1316,7 +1307,15 @@ impl InterfaceRH{
                     column![
                     ].width(Fill).align_x(Center)
                 ];
+                let linha_adicionador:Row<Message> = row![
+                    text("Adicionar Dia:"),
+                    text_input("dia-mes-ano", "dia-mes-ano").width(Fixed(80.0)),
+                    text_input("hora:minuto", "hh:mm").width(Fixed(80.0)),
+                    button("ADD!")
+                    ].spacing(10).width(Fill).into();
                 acontecimentos_funcionario = acontecimentos_funcionario.push(self.get_registro_ponto_funcionario(cpf.to_string()));
+                acontecimentos_funcionario = acontecimentos_funcionario.push(Space::with_width(20.0));
+                acontecimentos_funcionario = acontecimentos_funcionario.push(linha_adicionador);
                 column![
                     row![
                     text("INFO ADD FUNCIONARIO").size(20),
@@ -1382,7 +1381,7 @@ impl InterfaceRH{
                     ],
                     Space::with_width(20),
                     scrollable(
-                        acontecimentos_funcionario
+                        acontecimentos_funcionario,
                     )
                 ].width(Fill).height(Fill).spacing(5).align_x(Center).into()
             },
