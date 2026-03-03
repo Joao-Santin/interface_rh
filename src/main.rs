@@ -560,9 +560,10 @@ struct InfoAddFuncionario{
     cargo: String,
     salario: f32,
     banco_horas_p_dia: HashMap<NaiveDate, i32>,
-    correcao_registro_ponto: HashMap<NaiveDateTime, Option<NaiveDateTime>>,//primeiro é a data original,
-    correcao_registro_ponto_str: HashMap<NaiveDateTime, String>
-    //segundo é a correção feita
+    correcao_registro_ponto: HashMap<NaiveDateTime, Option<NaiveDateTime>>,// primeiro é a data original,
+    correcao_registro_ponto_str: HashMap<NaiveDateTime, String>,// esse é só um placeholder para ti
+    criado_registro_ponto: HashMap<NaiveDateTime, Option<NaiveDateTime>>,
+    criado_registro_ponto_str: HashMap<NaiveDateTime, Option<NaiveDateTime>>, 
 }
 
 struct InterfaceRHData{
@@ -656,6 +657,7 @@ enum Buttons{
     SelDay(u32),
     SelPeriodo(String, Periodo),
     SelDayInicioFim(DataSelVar, u32),
+    CreateNewDay(String, NaiveDate, NaiveTime), //CPF, DATA, HORA para adicionar.
 }
 #[derive(Debug, Clone)]
 enum CampoInput{
@@ -719,7 +721,7 @@ impl InterfaceRH{
                 println!("Possui a chave: {}", &chave)
             }else{
                 self.data.infoaddfuncionarios.insert(chave.to_string(), InfoAddFuncionario{
-                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0), banco_horas_p_dia: HashMap::new(), correcao_registro_ponto: HashMap::new(), correcao_registro_ponto_str: HashMap::new()
+                    nome_correcao: Some("adicionar".to_string()), periodo: (Periodo::Manha), almoco: (12), cargo:("".to_string()), salario:(0.0), banco_horas_p_dia: HashMap::new(), correcao_registro_ponto: HashMap::new(), correcao_registro_ponto_str: HashMap::new(), criado_registro_ponto: HashMap::new(), criado_registro_ponto_str: HashMap::new()
                 });
             }
         }
@@ -897,11 +899,9 @@ impl InterfaceRH{
             };
             rows.push((one_row).spacing(10).into());
         }
-        
         let column = Column::with_children(
             rows.into_iter().map(Element::from).collect::<Vec<Element<Message>>>()
         ).spacing(5).width(Fill).align_x(Center);
-
         column
     }
     fn get_acontecimentos_by_day(&self)->Column<Message>{
@@ -1054,6 +1054,9 @@ impl InterfaceRH{
                         if let Some(func) = self.data.infoaddfuncionarios.get_mut(&cpf){
                             func.periodo = periodo;
                         }
+                    }
+                    Buttons::CreateNewDay(cpf, dia, hora) =>{
+                        println!("Creating a new day. cpf: {}, {}T{}", cpf, dia, hora);
                     }
                 }
                 Command::none()
@@ -1311,7 +1314,7 @@ impl InterfaceRH{
                     text("Adicionar Dia:"),
                     text_input("dia-mes-ano", "dia-mes-ano").width(Fixed(80.0)),
                     text_input("hora:minuto", "hh:mm").width(Fixed(80.0)),
-                    button("ADD!")
+                    button("ADD!").on_press(Message::ButtonPressed(Buttons::CreateNewDay(cpf.to_string(), NaiveDate::from_ymd(2025, 11, 20), NaiveTime::parse_from_str("10:20:00" ,"%H:%M:%S").unwrap()))),
                     ].spacing(10).width(Fill).into();
                 acontecimentos_funcionario = acontecimentos_funcionario.push(self.get_registro_ponto_funcionario(cpf.to_string()));
                 acontecimentos_funcionario = acontecimentos_funcionario.push(Space::with_width(20.0));
